@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, Loader2, Copy, CheckCheck, ShieldCheck } from 'lucide-react';
 import type { DbTenant } from '@/types/database';
 
@@ -102,9 +102,8 @@ export default function AuditView({ activeTenant }: Props) {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {logs.map((row) => (
-                <>
+                <React.Fragment key={row.id}>
                   <tr
-                    key={row.id}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
                     onClick={() => setExpanded(expanded === row.id ? null : row.id)}
                   >
@@ -139,7 +138,7 @@ export default function AuditView({ activeTenant }: Props) {
                     </td>
                   </tr>
                   {expanded === row.id && (
-                    <tr key={`${row.id}-expanded`} className="bg-slate-50">
+                    <tr className="bg-slate-50">
                       <td colSpan={5} className="px-4 py-3">
                         <div className="space-y-2">
                           <div>
@@ -160,7 +159,7 @@ export default function AuditView({ activeTenant }: Props) {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
