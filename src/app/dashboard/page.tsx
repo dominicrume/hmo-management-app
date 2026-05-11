@@ -22,7 +22,7 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import type { DbTenant, DbUser } from '@/types/database';
 
 // ── Views that use the full-width layout (no forms panel) ─────────────────────
-const FULL_WIDTH_VIEWS = new Set(['dashboard', 'sessions', 'ledger', 'risk', 'audit', 'print', 'ai-brain']);
+const FULL_WIDTH_VIEWS = new Set(['dashboard', 'tenants', 'sessions', 'ledger', 'risk', 'audit', 'print', 'ai-brain']);
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -152,6 +152,15 @@ export default function DashboardPage() {
             onNewIntake={() => router.push('/intake/new')}
           />
         );
+      case 'tenants':
+        return (
+          <DashboardView
+            tenants={tenants}
+            currentUser={currentUser}
+            onNavigate={handleNavigate}
+            onNewIntake={() => router.push('/intake/new')}
+          />
+        );
       case 'sessions':
         return (
           <SessionsView
@@ -187,14 +196,16 @@ export default function DashboardPage() {
               workerId={currentUser?.id}
               onSaved={loadData}
             />
-            <FormsPanel
-              activeForm={activeForm}
-              onSelectForm={(id) => {
-                setActiveForm(id);
-                setActiveNav(id === 'ai-brain' ? 'ai-brain' : activeNav);
-              }}
-              tenant={activeTenant}
-            />
+            <div className="no-print">
+              <FormsPanel
+                activeForm={activeForm}
+                onSelectForm={(id) => {
+                  setActiveForm(id);
+                  setActiveNav(id === 'ai-brain' ? 'ai-brain' : activeNav);
+                }}
+                tenant={activeTenant}
+              />
+            </div>
           </>
         );
     }
@@ -204,6 +215,7 @@ export default function DashboardPage() {
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      <div className="no-print">
       <Sidebar
         activeItem={activeNav}
         onNavigate={handleNavigate}
@@ -213,10 +225,12 @@ export default function DashboardPage() {
         userRole={currentUser?.role ?? 'Manager'}
       />
 
+      </div>
+
       <div className="flex flex-col flex-1 overflow-hidden">
 
         {/* ── Top header ──────────────────────────────────────────────────── */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 z-10 flex-shrink-0">
+        <header className="no-print h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 z-10 flex-shrink-0">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
@@ -273,7 +287,7 @@ export default function DashboardPage() {
                     <Bell className="w-3.5 h-3.5 text-navy" />
                     <span className="text-xs font-bold text-navy">Notifications</span>
                   </div>
-                  <button type="button" onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-navy">
+                  <button type="button" aria-label="Close notifications" onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-navy">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -325,7 +339,7 @@ export default function DashboardPage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* ── Tenant list — always visible ─────────────────────────────────── */}
-          <aside className="w-60 min-w-[240px] bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+          <aside className="no-print w-60 min-w-[240px] bg-white border-r border-slate-200 flex flex-col overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-bold text-navy">Tenants</h2>
@@ -357,9 +371,19 @@ export default function DashboardPage() {
             </div>
 
             {error && (
-              <div className="m-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xxs text-red-600">{error}</p>
+              <div className="m-3 flex flex-col gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xxs text-red-600">{error}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={loadData} className="text-xxs font-bold text-red-600 underline">
+                    Retry
+                  </button>
+                  <button type="button" onClick={handleSignOut} className="text-xxs font-bold text-red-600 underline">
+                    Sign out &amp; back in
+                  </button>
+                </div>
               </div>
             )}
 

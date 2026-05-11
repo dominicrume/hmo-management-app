@@ -16,6 +16,14 @@
   ::-webkit-scrollbar-thumb { background: #2A4060; border-radius: 2px; }
 }
 
+/* ── Print styles — only the active form prints, everything else hides ── */
+@media print {
+  .no-print           { display: none !important; }
+  body                { background: white !important; }
+  /* Remove scroll containers so form renders at full height */
+  main.form-workspace { overflow: visible !important; height: auto !important; }
+}
+
 @layer utilities {
   .border-field-line { border-color: #EDE8E1; }
 

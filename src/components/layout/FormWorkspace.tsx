@@ -362,7 +362,7 @@ export default function FormWorkspace({
   const formSections = buildFormSections(activeTenantObj);
 
   return (
-    <main className="flex-1 overflow-y-auto bg-cream px-8 py-6" data-brand={brand}>
+    <main className="form-workspace flex-1 overflow-y-auto bg-cream px-8 py-6" data-brand={brand}>
       <div
         className="max-w-3xl mx-auto bg-white shadow-lg rounded-sm border border-slate-200
                    min-h-[1056px] p-12 relative"
