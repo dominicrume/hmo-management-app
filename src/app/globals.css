@@ -18,4 +18,18 @@
 
 @layer utilities {
   .border-field-line { border-color: #EDE8E1; }
+
+  .brand-border-bottom { border-bottom: 3px solid var(--brand-accent); }
+
+  .brand-badge {
+    background-color: var(--brand-accent-dim);
+    color: var(--brand-accent);
+  }
+
+  .brand-btn {
+    background-color: var(--brand-accent);
+  }
+  .brand-btn:hover {
+    opacity: 0.9;
+  }
 }

@@ -259,17 +259,20 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
     );
   }
 
+  // Brand colours injected as CSS custom properties — avoids inline style warnings
+  const cssVars = {
+    '--brand-accent':     lh.accentColor,
+    '--brand-accent-dim': `${lh.accentColor}22`,
+  } as React.CSSProperties;
+
   return (
-    <main className="flex-1 overflow-y-auto bg-cream px-8 py-6">
+    <main className="flex-1 overflow-y-auto bg-cream px-8 py-6" style={cssVars}>
       <div
         className="max-w-3xl mx-auto bg-white shadow-lg rounded-sm border border-slate-200
                    min-h-[1056px] p-12 relative"
       >
         {/* ── Letterhead ── */}
-        <div
-          className="flex justify-between items-start pb-6 mb-8"
-          style={{ borderBottom: `3px solid ${lh.accentColor}` }}
-        >
+        <div className="flex justify-between items-start pb-6 mb-8 brand-border-bottom">
           <div>
             <h2 className="text-2xl font-black text-navy tracking-tight uppercase">
               {lh.name}
@@ -291,10 +294,7 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
 
         {/* ── Form title ── */}
         <div className="mb-8">
-          <div
-            className="inline-block text-xxs font-black uppercase tracking-widest px-2 py-1 rounded mb-3"
-            style={{ backgroundColor: `${lh.accentColor}22`, color: lh.accentColor }}
-          >
+          <div className="brand-badge inline-block text-xxs font-black uppercase tracking-widest px-2 py-1 rounded mb-3">
             {FORM_TITLES[activeForm]}
           </div>
           <p className="text-xxs text-slate-400">
@@ -309,7 +309,6 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
 
         {/* ── Footer actions ── */}
         <div className="absolute bottom-10 right-12 flex items-center gap-3">
-          {/* Blockchain hash preview */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-navy/5 border border-navy/10 rounded-lg">
             <Link className="w-3 h-3 text-slate-400" />
             <span className="font-mono text-xxs text-slate-400 tracking-widest">
@@ -318,6 +317,7 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
           </div>
 
           <button
+            type="button"
             className="flex items-center gap-2 border border-slate-300 text-slate-600
                        px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors"
           >
@@ -326,11 +326,11 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
           </button>
 
           <button
-            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg
+            type="button"
+            className="brand-btn flex items-center gap-2 text-white px-4 py-2 rounded-lg
                        text-xs font-bold transition-colors"
-            style={{ backgroundColor: lh.accentColor }}
           >
-            Save & Stamp
+            Save &amp; Stamp
           </button>
         </div>
       </div>
