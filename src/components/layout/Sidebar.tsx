@@ -37,10 +37,15 @@ const NAV_ITEMS: NavItem[] = [
 interface Props {
   activeItem: string;
   onNavigate: (id: string) => void;
-  role?: 'Manager' | 'SupportWorker';
+  role?:      'Manager' | 'SupportWorker';
+  onSignOut?: () => void;
+  userName?:  string;
+  userRole?:  string;
 }
 
-export default function Sidebar({ activeItem, onNavigate, role = 'Manager' }: Props) {
+export default function Sidebar({
+  activeItem, onNavigate, role = 'Manager', onSignOut, userName, userRole,
+}: Props) {
   const visible = NAV_ITEMS.filter((item) => !item.managerOnly || role === 'Manager');
 
   return (
@@ -106,11 +111,15 @@ export default function Sidebar({ activeItem, onNavigate, role = 'Manager' }: Pr
 
       {/* Footer */}
       <div className="border-t border-navy-border px-2 py-3 space-y-0.5">
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-navy-light transition-colors">
+        <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-navy-light transition-colors">
           <Settings className="w-4 h-4 text-slate-500" />
           Settings
         </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-red-400 hover:bg-navy-light transition-colors">
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-red-400 hover:bg-navy-light transition-colors"
+        >
           <LogOut className="w-4 h-4 text-slate-500" />
           Sign Out
         </button>
@@ -118,11 +127,11 @@ export default function Sidebar({ activeItem, onNavigate, role = 'Manager' }: Pr
         {/* User chip */}
         <div className="mt-3 px-2 py-2.5 bg-navy-light rounded-lg flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-amber flex items-center justify-center text-navy text-xxs font-black flex-shrink-0">
-            GM
+            {(userName ?? 'GM').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-white text-xxs font-semibold truncate">General Matlub</p>
-            <p className="text-slate-500 text-xxs truncate">Manager</p>
+            <p className="text-white text-xxs font-semibold truncate">{userName || 'Loading…'}</p>
+            <p className="text-slate-500 text-xxs truncate">{userRole || role}</p>
           </div>
         </div>
       </div>
