@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
+import type { DbTenant } from '@/types/database';
 
 export type FormId =
   | 'personal'
@@ -120,9 +121,29 @@ function StatusBadge({ status, active }: { status: FormStatus; active: boolean }
 interface Props {
   activeForm: FormId;
   onSelectForm: (form: FormId) => void;
+  tenant?: DbTenant | null;
 }
 
-export default function FormsPanel({ activeForm, onSelectForm }: Props) {
+// Derive live form status from the tenant record
+function deriveStatus(formId: FormId, tenant: DbTenant | null | undefined): FormStatus {
+  if (!tenant) return '';
+  switch (formId) {
+    case 'personal':
+      return tenant.full_name && tenant.nino && tenant.mobile ? 'Complete' : 'In Progress';
+    case 'privacy':
+      return tenant.confidentiality_signed ? 'Complete' : 'Required';
+    case 'assessment':
+      return tenant.assigned_worker_id ? 'Complete' : 'Required';
+    case 'missing':
+      return tenant.status === 'missing' ? 'Review' : '';
+    default:
+      return '';
+  }
+}
+
+export default function FormsPanel({ activeForm, onSelectForm, tenant }: Props) {
+  const handlePrint = () => window.print();
+
   return (
     <aside
       className="w-panel min-w-panel max-w-panel bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden"
@@ -137,6 +158,7 @@ export default function FormsPanel({ activeForm, onSelectForm }: Props) {
           <h2 className="text-xs font-bold text-navy mt-0.5">Form Library</h2>
         </div>
         <button
+          type="button"
           className="w-7 h-7 rounded-full bg-slate-100 hover:bg-amber/20 text-slate-500 hover:text-amber-dark
                      flex items-center justify-center transition-colors"
           aria-label="Add new form"
@@ -149,9 +171,11 @@ export default function FormsPanel({ activeForm, onSelectForm }: Props) {
       <ul className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {FORMS.map((form) => {
           const isActive = form.id === activeForm;
+          const liveStatus = deriveStatus(form.id, tenant) || form.status;
           return (
             <li key={form.id}>
               <button
+                type="button"
                 onClick={() => onSelectForm(form.id)}
                 className={`
                   w-full text-left p-3 rounded-xl border transition-all duration-150
@@ -163,36 +187,30 @@ export default function FormsPanel({ activeForm, onSelectForm }: Props) {
                 aria-current={isActive ? 'true' : undefined}
               >
                 <div className="flex items-start gap-2.5">
-                  {/* Icon */}
                   <span
-                    className={`
-                      p-1.5 rounded-lg flex-shrink-0
-                      ${isActive ? 'bg-white/10 text-amber' : 'bg-slate-100 text-navy'}
-                    `}
+                    className={`p-1.5 rounded-lg flex-shrink-0
+                      ${isActive ? 'bg-white/10 text-amber' : 'bg-slate-100 text-navy'}`}
                   >
                     {form.icon}
                   </span>
 
                   <div className="flex-1 min-w-0">
-                    {/* Title row */}
                     <div className="flex items-center justify-between gap-1 mb-0.5">
                       <p className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-navy'}`}>
                         {form.title}
                       </p>
-                      {form.status === 'Complete' && (
+                      {liveStatus === 'Complete' && (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                       )}
                     </div>
 
-                    {/* Description */}
                     <p className={`text-xxs leading-tight ${isActive ? 'text-white/60' : 'text-slate-400'}`}>
                       {form.desc}
                     </p>
 
-                    {/* Status badge */}
-                    {form.status && form.status !== 'Complete' && (
+                    {liveStatus && liveStatus !== 'Complete' && (
                       <div className="mt-1.5">
-                        <StatusBadge status={form.status} active={isActive} />
+                        <StatusBadge status={liveStatus} active={isActive} />
                       </div>
                     )}
                   </div>
@@ -206,6 +224,8 @@ export default function FormsPanel({ activeForm, onSelectForm }: Props) {
       {/* Print actions */}
       <div className="border-t border-slate-100 px-3 py-4 space-y-2">
         <button
+          type="button"
+          onClick={handlePrint}
           className="w-full flex items-center justify-center gap-2 bg-navy text-white
                      py-2.5 rounded-lg text-xs font-bold hover:bg-navy-light transition-colors"
         >
@@ -213,6 +233,8 @@ export default function FormsPanel({ activeForm, onSelectForm }: Props) {
           Print Active Form
         </button>
         <button
+          type="button"
+          onClick={handlePrint}
           className="w-full flex items-center justify-center gap-2 border-2 border-navy
                      text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
         >

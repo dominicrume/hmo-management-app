@@ -19,6 +19,11 @@
 @layer utilities {
   .border-field-line { border-color: #EDE8E1; }
 
+  /* Brand colour tokens — set via data-brand attribute, consumed by utility classes below */
+  [data-brand="mattys_place"] { --brand-accent: #E8A84C; --brand-accent-dim: #E8A84C22; }
+  [data-brand="ash_shahada"]  { --brand-accent: #2A6496; --brand-accent-dim: #2A649622; }
+  [data-brand="reliance"]     { --brand-accent: #1A7A4A; --brand-accent-dim: #1A7A4A22; }
+
   .brand-border-bottom { border-bottom: 3px solid var(--brand-accent); }
 
   .brand-badge {
@@ -26,10 +31,6 @@
     color: var(--brand-accent);
   }
 
-  .brand-btn {
-    background-color: var(--brand-accent);
-  }
-  .brand-btn:hover {
-    opacity: 0.9;
-  }
+  .brand-btn { background-color: var(--brand-accent); }
+  .brand-btn:hover { opacity: 0.9; }
 }

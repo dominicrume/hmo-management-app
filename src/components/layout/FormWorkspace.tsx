@@ -1,6 +1,7 @@
 'use client';
 
-import { Save, Link } from 'lucide-react';
+import { useRef, useState, useCallback } from 'react';
+import { Save, Link, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import type { Brand } from './LetterheadSwitcher';
 import type { FormId } from './FormsPanel';
 import type { DbTenant } from '@/types/database';
@@ -11,142 +12,23 @@ import AIBrainPanel from '@/components/ai/AIBrainPanel';
 const LETTERHEAD: Record<Brand, {
   name: string;
   tagline: string;
-  accentColor: string;
   formRef: string;
 }> = {
   mattys_place: {
     name: "Matty's Place",
     tagline: 'Supported Housing & Community Services',
-    accentColor: '#E8A84C',
     formRef: 'MP-TN-2026',
   },
   ash_shahada: {
     name: 'Ash Shahada Housing Association Ltd',
     tagline: 'Birmingham HMO & Social Housing — Registered Charity',
-    accentColor: '#2A6496',
     formRef: 'ASHA-TN-2026',
   },
   reliance: {
     name: 'Reliance Housing',
     tagline: 'Community Support Services, Birmingham',
-    accentColor: '#1A7A4A',
     formRef: 'RH-TN-2026',
   },
-};
-
-// ── Form section definitions ──────────────────────────────────────────────────
-
-const FORM_SECTIONS: Partial<Record<FormId, React.ReactNode>> = {
-  personal: (
-    <>
-      <Section title="1.0  Personal Information">
-        <Field label="Full Legal Name" placeholder="e.g. John Stevenson" />
-        <Field label="Date of Birth" type="date" />
-        <Field label="National Insurance Number" placeholder="AB 12 34 56 C" mono />
-        <Field label="Nationality" placeholder="e.g. British" />
-        <Field label="Date of Entry to UK" type="date" />
-        <Field label="Primary Mobile" placeholder="+44 7000 000000" />
-        <Field label="Email Address" type="email" placeholder="john@example.com" />
-        <Field label="Languages Spoken" placeholder="e.g. English, Urdu" />
-      </Section>
-      <Section title="2.0  Housing">
-        <Field label="Full Address" placeholder="12 Example Street, Birmingham B1 2AB" />
-        <Field label="Room Number" placeholder="Room 4B" />
-        <Field label="Move-In Date" type="date" />
-      </Section>
-      <Section title="3.0  Benefits">
-        <SelectField label="Benefit Type" options={['Universal Credit', 'Housing Benefit', 'PIP', 'ESA', 'JSA', 'None']} />
-        <SelectField label="Payment Frequency" options={['Monthly', 'Fortnightly', 'Weekly']} />
-        <Field label="Benefit Amount (£)" type="number" placeholder="0.00" />
-      </Section>
-      <Section title="4.0  Next of Kin">
-        <Field label="Name" placeholder="Full name" />
-        <Field label="Relationship" placeholder="e.g. Brother" />
-        <Field label="Phone" placeholder="+44 7000 000000" />
-        <Field label="Address" placeholder="Full postal address" />
-      </Section>
-      <Section title="5.0  Medical & Other">
-        <Field label="GP Name & Surgery" placeholder="Dr Smith — Digbeth Medical Centre" />
-        <Field label="Probation Officer (if applicable)" placeholder="Officer name" />
-      </Section>
-    </>
-  ),
-  housing: (
-    <Section title="1.0  Housing Benefit Claim">
-      <Field label="Claim Reference Number" placeholder="HBC-2026-XXXXX" mono />
-      <SelectField label="Claim Type" options={['Housing Benefit', 'Universal Credit — Housing Element', 'Other']} />
-      <Field label="Landlord Name" placeholder="Ash Shahada Housing Association Ltd" />
-      <Field label="Landlord Account No." placeholder="SORT-CODE / ACCOUNT" mono />
-      <Field label="Weekly Rent Amount (£)" type="number" placeholder="150.00" />
-      <Field label="Claim Start Date" type="date" />
-      <Field label="Assessment Notes" textarea />
-    </Section>
-  ),
-  assessment: (
-    <Section title="1.0  Initial Assessment">
-      <SelectField label="Risk Level" options={['Low', 'Medium', 'High', 'Critical']} />
-      <Field label="Presenting Needs" textarea placeholder="Describe the tenant's primary needs at intake..." />
-      <Field label="Support Goals" textarea placeholder="List 3–5 goals for the support plan..." />
-      <Field label="Assigned Key Worker" placeholder="Worker full name" />
-      <Field label="Review Date" type="date" />
-    </Section>
-  ),
-  risk: (
-    <Section title="1.0  Risk Assessment & Support Plan">
-      <Field label="Risk Categories Identified" textarea placeholder="e.g. Self-harm, substance misuse, housing instability..." />
-      <SelectField label="Overall Risk Severity" options={['Low', 'Medium', 'High', 'Critical']} />
-      <Field label="Mitigation Actions" textarea placeholder="List actions agreed with tenant and key worker..." />
-      <Field label="Support Worker Sign-Off" placeholder="Full name" />
-      <Field label="Sign-Off Date" type="date" />
-    </Section>
-  ),
-  missing: (
-    <>
-      <Section title="1.0  Physical Description">
-        <Field label="Height" placeholder="e.g. 5ft 10in / 178cm" />
-        <Field label="Build" placeholder="e.g. Medium, Stocky, Slim" />
-        <Field label="Hair Colour & Style" placeholder="e.g. Black, short" />
-        <Field label="Eye Colour" placeholder="e.g. Brown" />
-        <Field label="Distinguishing Features" textarea placeholder="Scars, tattoos, birthmarks..." />
-      </Section>
-      <Section title="2.0  Employment & Education">
-        <Field label="Employer / College" placeholder="Name and address" />
-        <Field label="Last Known Location" placeholder="Address or description" />
-      </Section>
-      <Section title="3.0  Vehicle Details">
-        <Field label="Vehicle Registration" placeholder="AB12 CDE" mono />
-        <Field label="Make & Model" placeholder="e.g. Ford Focus, Black" />
-      </Section>
-      <Section title="4.0  Authority Signature">
-        <Field label="Authorising Officer" placeholder="Full name and role" />
-        <Field label="Date Reported" type="date" />
-      </Section>
-    </>
-  ),
-  service: (
-    <Section title="1.0  Service Charge Agreement">
-      <Field label="Weekly Rate (£)" type="number" placeholder="150.00" />
-      <SelectField label="Payment Method" options={['Cash', 'Bank Transfer', 'Housing Benefit Direct', 'Standing Order']} />
-      <Field label="Agreement Start Date" type="date" />
-      <Field label="Tenant Acknowledgement" textarea placeholder="I agree to pay the weekly service charge of £___ per week..." />
-    </Section>
-  ),
-  privacy: (
-    <Section title="1.0  Confidentiality Waiver">
-      <div className="col-span-2 text-xs text-slate-600 leading-relaxed border border-slate-200 rounded-lg p-4 bg-slate-50">
-        I, the undersigned, hereby authorise Ash Shahada Housing Association Ltd and its staff to share
-        relevant information about my case with partner agencies, including but not limited to Birmingham
-        City Council, probation services, and healthcare providers, where this is necessary for the
-        delivery of housing support services. I understand my rights under the Data Protection Act 2018
-        and the UK GDPR.
-      </div>
-      <Field label="Resident Full Name" placeholder="Print name clearly" />
-      <Field label="Resident Signature" placeholder="Digital signature or print name" />
-      <Field label="Date" type="date" />
-      <Field label="Witness: Ahsan Rehman" placeholder="Authorised signatory — ASHA" />
-      <Field label="Witness Date" type="date" />
-    </Section>
-  ),
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -166,48 +48,78 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Field({
+  name,
   label,
   type = 'text',
   placeholder = '',
   textarea = false,
   mono = false,
+  defaultValue = '',
 }: {
+  name: string;
   label: string;
   type?: string;
   placeholder?: string;
   textarea?: boolean;
   mono?: boolean;
+  defaultValue?: string;
 }) {
+  const fieldId = `field-${name}`;
   const baseClass = `w-full border-b border-field-line py-1.5 text-sm text-navy bg-transparent
     focus:border-navy focus:outline-none transition-colors placeholder-slate-300
     ${mono ? 'font-mono tracking-widest' : ''}`;
 
   return (
     <div className={`space-y-1 ${textarea ? 'col-span-2' : ''}`}>
-      <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">
+      <label htmlFor={fieldId} className="text-xxs font-black text-slate-400 uppercase tracking-wider">
         {label}
       </label>
       {textarea ? (
         <textarea
+          id={fieldId}
+          name={name}
           placeholder={placeholder}
           rows={3}
+          defaultValue={defaultValue}
           className={`${baseClass} border border-slate-200 rounded-lg px-3 py-2 resize-none`}
         />
       ) : (
-        <input type={type} placeholder={placeholder} className={baseClass} />
+        <input
+          id={fieldId}
+          name={name}
+          type={type}
+          placeholder={placeholder}
+          defaultValue={defaultValue}
+          className={baseClass}
+        />
       )}
     </div>
   );
 }
 
-function SelectField({ label, options }: { label: string; options: string[] }) {
-  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
+function SelectField({
+  name,
+  label,
+  options,
+  defaultValue = '',
+}: {
+  name: string;
+  label: string;
+  options: string[];
+  defaultValue?: string;
+}) {
+  const fieldId = `field-${name}`;
   return (
     <div className="space-y-1">
       <label htmlFor={fieldId} className="text-xxs font-black text-slate-400 uppercase tracking-wider">
         {label}
       </label>
-      <select id={fieldId} className="w-full border-b border-field-line py-1.5 text-sm text-navy bg-transparent focus:border-navy focus:outline-none transition-colors">
+      <select
+        id={fieldId}
+        name={name}
+        defaultValue={defaultValue}
+        className="w-full border-b border-field-line py-1.5 text-sm text-navy bg-transparent focus:border-navy focus:outline-none transition-colors"
+      >
         <option value="">Select…</option>
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>
@@ -217,7 +129,142 @@ function SelectField({ label, options }: { label: string; options: string[] }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Form section builders (accept tenant for pre-population) ──────────────────
+
+function buildFormSections(
+  t: DbTenant | null | undefined
+): Partial<Record<FormId, React.ReactNode>> {
+  return {
+    personal: (
+      <>
+        <Section title="1.0  Personal Information">
+          <Field name="full_name"     label="Full Legal Name"              placeholder="e.g. John Stevenson"        defaultValue={t?.full_name ?? ''} />
+          <Field name="dob"           label="Date of Birth"                type="date"                              defaultValue={t?.dob ?? ''} />
+          <Field name="nino"          label="National Insurance Number"    placeholder="AB 12 34 56 C" mono         defaultValue={t?.nino ?? ''} />
+          <Field name="nationality"   label="Nationality"                  placeholder="e.g. British"               defaultValue={t?.nationality ?? ''} />
+          <Field name="date_entry_uk" label="Date of Entry to UK"          type="date"                              defaultValue={t?.date_entry_uk ?? ''} />
+          <Field name="mobile"        label="Primary Mobile"               placeholder="+44 7000 000000"            defaultValue={t?.mobile ?? ''} />
+          <Field name="email"         label="Email Address"                type="email" placeholder="john@example.com" defaultValue={t?.email ?? ''} />
+          <Field name="languages"     label="Languages Spoken"             placeholder="e.g. English, Urdu"         defaultValue={t?.languages ?? ''} />
+        </Section>
+        <Section title="2.0  Housing">
+          <Field name="address"       label="Full Address"   placeholder="12 Example Street, Birmingham B1 2AB" defaultValue={t?.address ?? ''} />
+          <Field name="room_number"   label="Room Number"    placeholder="Room 4B"                               defaultValue={t?.room_number ?? ''} />
+          <Field name="moved_in"      label="Move-In Date"   type="date"                                         defaultValue={t?.moved_in ?? ''} />
+        </Section>
+        <Section title="3.0  Benefits">
+          <SelectField name="benefit_type" label="Benefit Type"       options={['Universal Credit', 'Housing Benefit', 'PIP', 'ESA', 'JSA', 'None']}    defaultValue={t?.benefit_type ?? ''} />
+          <SelectField name="benefit_freq" label="Payment Frequency"  options={['Monthly', 'Fortnightly', 'Weekly']}                                      defaultValue={t?.benefit_freq ?? ''} />
+          <Field       name="benefit_amount" label="Benefit Amount (£)" type="number" placeholder="0.00"                                                  defaultValue={t?.benefit_amount != null ? String(t.benefit_amount) : ''} />
+        </Section>
+        <Section title="4.0  Next of Kin">
+          <Field name="nok_name"     label="Name"         placeholder="Full name"            defaultValue={t?.nok_name ?? ''} />
+          <Field name="nok_relation" label="Relationship" placeholder="e.g. Brother"         defaultValue={t?.nok_relation ?? ''} />
+          <Field name="nok_phone"    label="Phone"        placeholder="+44 7000 000000"       defaultValue={t?.nok_phone ?? ''} />
+          <Field name="nok_address"  label="Address"      placeholder="Full postal address"   defaultValue={t?.nok_address ?? ''} />
+        </Section>
+        <Section title="5.0  Medical & Other">
+          <Field name="doctor"            label="GP Name & Surgery"               placeholder="Dr Smith — Digbeth Medical Centre" defaultValue={t?.doctor ?? ''} />
+          <Field name="probation_officer" label="Probation Officer (if applicable)" placeholder="Officer name"                    defaultValue={t?.probation_officer ?? ''} />
+        </Section>
+      </>
+    ),
+
+    housing: (
+      <Section title="1.0  Housing Benefit Claim">
+        <Field name="claim_reference"  label="Claim Reference Number"   placeholder="HBC-2026-XXXXX" mono />
+        <SelectField name="claim_type" label="Claim Type"               options={['Housing Benefit', 'Universal Credit — Housing Element', 'Other']} />
+        <Field name="landlord_name"    label="Landlord Name"            placeholder="Ash Shahada Housing Association Ltd" />
+        <Field name="landlord_account" label="Landlord Account No."     placeholder="SORT-CODE / ACCOUNT" mono />
+        <Field name="weekly_rent"      label="Weekly Rent Amount (£)"   type="number" placeholder="150.00" />
+        <Field name="claim_start_date" label="Claim Start Date"         type="date" />
+        <Field name="assessment_notes" label="Assessment Notes"         textarea />
+      </Section>
+    ),
+
+    assessment: (
+      <Section title="1.0  Initial Assessment">
+        <SelectField name="risk_level"       label="Risk Level"         options={['Low', 'Medium', 'High', 'Critical']} />
+        <Field       name="presenting_needs" label="Presenting Needs"   textarea placeholder="Describe the tenant's primary needs at intake..." />
+        <Field       name="support_goals"    label="Support Goals"      textarea placeholder="List 3–5 goals for the support plan..." />
+        <Field       name="assigned_worker"  label="Assigned Key Worker" placeholder="Worker full name" />
+        <Field       name="review_date"      label="Review Date"        type="date" />
+      </Section>
+    ),
+
+    risk: (
+      <Section title="1.0  Risk Assessment & Support Plan">
+        <Field       name="risk_categories"   label="Risk Categories Identified" textarea placeholder="e.g. Self-harm, substance misuse, housing instability..." />
+        <SelectField name="risk_severity"     label="Overall Risk Severity"      options={['Low', 'Medium', 'High', 'Critical']} />
+        <Field       name="mitigation_actions" label="Mitigation Actions"        textarea placeholder="List actions agreed with tenant and key worker..." />
+        <Field       name="sign_off_name"     label="Support Worker Sign-Off"   placeholder="Full name" />
+        <Field       name="sign_off_date"     label="Sign-Off Date"             type="date" />
+      </Section>
+    ),
+
+    missing: (
+      <>
+        <Section title="1.0  Physical Description">
+          <Field name="height"                label="Height"                   placeholder="e.g. 5ft 10in / 178cm" />
+          <Field name="build"                 label="Build"                    placeholder="e.g. Medium, Stocky, Slim" />
+          <Field name="hair"                  label="Hair Colour & Style"      placeholder="e.g. Black, short" />
+          <Field name="eye_colour"            label="Eye Colour"               placeholder="e.g. Brown" />
+          <Field name="physical_description"  label="Distinguishing Features"  textarea placeholder="Scars, tattoos, birthmarks..." defaultValue={t?.physical_description ?? ''} />
+        </Section>
+        <Section title="2.0  Employment & Education">
+          <Field name="employer_or_college"   label="Employer / College"       placeholder="Name and address" defaultValue={t?.employer_or_college ?? ''} />
+          <Field name="last_known_location"   label="Last Known Location"      placeholder="Address or description" />
+        </Section>
+        <Section title="3.0  Vehicle Details">
+          <Field name="vehicle_registration"  label="Vehicle Registration"     placeholder="AB12 CDE" mono defaultValue={t?.vehicle_registration ?? ''} />
+          <Field name="vehicle_make_model"    label="Make & Model"             placeholder="e.g. Ford Focus, Black" />
+        </Section>
+        <Section title="4.0  Authority Signature">
+          <Field name="authorising_officer"   label="Authorising Officer"      placeholder="Full name and role" />
+          <Field name="date_reported"         label="Date Reported"            type="date" />
+        </Section>
+      </>
+    ),
+
+    service: (
+      <Section title="1.0  Service Charge Agreement">
+        <Field       name="weekly_rate"            label="Weekly Rate (£)"      type="number" placeholder="150.00" />
+        <SelectField name="payment_method"         label="Payment Method"       options={['Cash', 'Bank Transfer', 'Housing Benefit Direct', 'Standing Order']} />
+        <Field       name="agreement_start_date"   label="Agreement Start Date" type="date" />
+        <Field       name="tenant_acknowledgement" label="Tenant Acknowledgement" textarea placeholder="I agree to pay the weekly service charge of £___ per week…" />
+      </Section>
+    ),
+
+    privacy: (
+      <Section title="1.0  Confidentiality Waiver">
+        <div className="col-span-2 text-xs text-slate-600 leading-relaxed border border-slate-200 rounded-lg p-4 bg-slate-50">
+          I, the undersigned, hereby authorise Ash Shahada Housing Association Ltd and its staff to share
+          relevant information about my case with partner agencies, including but not limited to Birmingham
+          City Council, probation services, and healthcare providers, where this is necessary for the
+          delivery of housing support services. I understand my rights under the Data Protection Act 2018
+          and the UK GDPR.
+        </div>
+        {t?.confidentiality_signed && (
+          <div className="col-span-2 flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+            <span className="text-xs text-emerald-700 font-semibold">
+              Signed on {t.confidentiality_signed_at
+                ? new Date(t.confidentiality_signed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                : 'record'}
+            </span>
+          </div>
+        )}
+        <Field name="resident_name"      label="Resident Full Name"          placeholder="Print name clearly"                 defaultValue={t?.full_name ?? ''} />
+        <Field name="resident_signature" label="Resident Signature"          placeholder="Digital signature or print name" />
+        <Field name="date"               label="Date"                        type="date" />
+        <Field name="witness_name"       label="Witness: Ahsan Rehman"       placeholder="Authorised signatory — ASHA" />
+        <Field name="witness_date"       label="Witness Date"                type="date" />
+      </Section>
+    ),
+  };
+}
+
+// ── Form title map ────────────────────────────────────────────────────────────
 
 const FORM_TITLES: Record<FormId, string> = {
   personal:   'Personal Details',
@@ -230,21 +277,74 @@ const FORM_TITLES: Record<FormId, string> = {
   'ai-brain': 'AI Brain',
 };
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 interface Props {
   brand: Brand;
   activeForm: FormId;
   activeTenant: string;
   activeTenantObj?: DbTenant | null;
   workerId?: string;
+  onSaved?: () => void;
 }
 
-export default function FormWorkspace({ brand, activeForm, activeTenant, activeTenantObj, workerId }: Props) {
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export default function FormWorkspace({
+  brand,
+  activeForm,
+  activeTenant,
+  activeTenantObj,
+  workerId,
+  onSaved,
+}: Props) {
   const lh = LETTERHEAD[brand];
   const today = new Date().toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  // AI Brain gets its own full-height panel, no letterhead wrapper
+  const formRef = useRef<HTMLFormElement>(null);
+  const [status, setStatus]     = useState<SaveStatus>('idle');
+  const [errMsg, setErrMsg]     = useState('');
+
+  const handleSave = useCallback(async (stamp: boolean) => {
+    if (!activeTenantObj) return;
+    if (!formRef.current) return;
+
+    const raw = new FormData(formRef.current);
+    const data: Record<string, string> = {};
+    raw.forEach((val, key) => { data[key] = String(val); });
+
+    setStatus('saving');
+    setErrMsg('');
+
+    try {
+      const res = await fetch('/api/forms/save', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          form_id:   activeForm,
+          tenant_id: activeTenantObj.id,
+          data,
+          stamp,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Save failed');
+
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 3000);
+      onSaved?.();
+    } catch (e: unknown) {
+      setErrMsg(e instanceof Error ? e.message : 'Save failed');
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 5000);
+    }
+  }, [activeForm, activeTenantObj, onSaved]);
+
+  // ── AI Brain gets its own full-height panel ───────────────────────────────
+
   if (activeForm === 'ai-brain') {
     return (
       <main className="flex-1 overflow-hidden bg-white">
@@ -259,14 +359,10 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
     );
   }
 
-  // Brand colours injected as CSS custom properties — avoids inline style warnings
-  const cssVars = {
-    '--brand-accent':     lh.accentColor,
-    '--brand-accent-dim': `${lh.accentColor}22`,
-  } as React.CSSProperties;
+  const formSections = buildFormSections(activeTenantObj);
 
   return (
-    <main className="flex-1 overflow-y-auto bg-cream px-8 py-6" style={cssVars}>
+    <main className="flex-1 overflow-y-auto bg-cream px-8 py-6" data-brand={brand}>
       <div
         className="max-w-3xl mx-auto bg-white shadow-lg rounded-sm border border-slate-200
                    min-h-[1056px] p-12 relative"
@@ -304,22 +400,54 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
           </p>
         </div>
 
-        {/* ── Dynamic form section ── */}
-        {FORM_SECTIONS[activeForm]}
+        {/* ── No tenant selected guard ── */}
+        {!activeTenantObj ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-slate-400 text-sm">Select a tenant from the list to load this form.</p>
+          </div>
+        ) : (
+          /* key forces remount (and defaultValue reset) when tenant or form changes */
+          <form
+            key={`${activeTenantObj.id}-${activeForm}`}
+            ref={formRef}
+            onSubmit={(e) => { e.preventDefault(); handleSave(true); }}
+          >
+            {formSections[activeForm]}
+          </form>
+        )}
+
+        {/* ── Status bar ── */}
+        {status !== 'idle' && (
+          <div className={`absolute bottom-24 left-12 right-12 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold
+            ${status === 'saved' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : ''}
+            ${status === 'saving' ? 'bg-amber/10 border border-amber/30 text-amber-dark' : ''}
+            ${status === 'error' ? 'bg-red-50 border border-red-200 text-red-600' : ''}`}
+          >
+            {status === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {status === 'saved'  && <CheckCircle2 className="w-3.5 h-3.5" />}
+            {status === 'error'  && <AlertCircle className="w-3.5 h-3.5" />}
+            {status === 'saving' && 'Saving…'}
+            {status === 'saved'  && 'Saved and blockchain-stamped.'}
+            {status === 'error'  && (errMsg || 'Save failed — try again.')}
+          </div>
+        )}
 
         {/* ── Footer actions ── */}
         <div className="absolute bottom-10 right-12 flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-navy/5 border border-navy/10 rounded-lg">
             <Link className="w-3 h-3 text-slate-400" />
             <span className="font-mono text-xxs text-slate-400 tracking-widest">
-              SHA-256 · pending
+              SHA-256 · {status === 'saved' ? 'stamped' : 'pending'}
             </span>
           </div>
 
           <button
             type="button"
+            onClick={() => handleSave(false)}
+            disabled={!activeTenantObj || status === 'saving'}
             className="flex items-center gap-2 border border-slate-300 text-slate-600
-                       px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors"
+                       px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Save className="w-3.5 h-3.5" />
             Save Draft
@@ -327,9 +455,15 @@ export default function FormWorkspace({ brand, activeForm, activeTenant, activeT
 
           <button
             type="button"
+            onClick={() => handleSave(true)}
+            disabled={!activeTenantObj || status === 'saving'}
             className="brand-btn flex items-center gap-2 text-white px-4 py-2 rounded-lg
-                       text-xs font-bold transition-colors"
+                       text-xs font-bold transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed"
           >
+            {status === 'saving'
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : null}
             Save &amp; Stamp
           </button>
         </div>

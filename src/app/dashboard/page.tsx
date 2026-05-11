@@ -289,12 +289,14 @@ export default function DashboardPage() {
             activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
             activeTenantObj={activeTenant}
             workerId={currentUser?.id}
+            onSaved={loadData}
           />
 
           {/* ── Forms panel ─────────────────────────────────────────────────── */}
           <FormsPanel
             activeForm={activeForm}
             onSelectForm={setActiveForm}
+            tenant={activeTenant}
           />
         </div>
       </div>
