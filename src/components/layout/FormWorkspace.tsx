@@ -201,12 +201,13 @@ function Field({
 }
 
 function SelectField({ label, options }: { label: string; options: string[] }) {
+  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
   return (
     <div className="space-y-1">
-      <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">
+      <label htmlFor={fieldId} className="text-xxs font-black text-slate-400 uppercase tracking-wider">
         {label}
       </label>
-      <select className="w-full border-b border-field-line py-1.5 text-sm text-navy bg-transparent focus:border-navy focus:outline-none transition-colors">
+      <select id={fieldId} className="w-full border-b border-field-line py-1.5 text-sm text-navy bg-transparent focus:border-navy focus:outline-none transition-colors">
         <option value="">Select…</option>
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>

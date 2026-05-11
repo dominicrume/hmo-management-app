@@ -265,8 +265,8 @@ function StaffReviewInner() {
             </div>
             <div className="p-5 grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Title</label>
-                <select value={form.title} onChange={set('title')} className={inputClass('title')}>
+                <label htmlFor="title" className={labelClass}>Title</label>
+                <select id="title" value={form.title} onChange={set('title')} className={inputClass('title')}>
                   {['Mr','Mrs','Ms','Miss','Dr','Other'].map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
@@ -279,8 +279,8 @@ function StaffReviewInner() {
                 {errors.full_name && <p className="text-xxs text-red-500 mt-1">{errors.full_name}</p>}
               </div>
               <div>
-                <label className={labelClass}>Date of Birth *</label>
-                <input type="date" value={form.dob} onChange={set('dob')} className={inputClass('dob')} />
+                <label htmlFor="dob" className={labelClass}>Date of Birth *</label>
+                <input id="dob" type="date" value={form.dob} onChange={set('dob')} className={inputClass('dob')} />
                 {errors.dob && <p className="text-xxs text-red-500 mt-1">{errors.dob}</p>}
               </div>
               <div>
@@ -295,13 +295,13 @@ function StaffReviewInner() {
                   placeholder="e.g. British" className={inputClass('nationality')} />
               </div>
               <div>
-                <label className={labelClass}>Date Entered UK</label>
-                <input type="date" value={form.date_entry_uk} onChange={set('date_entry_uk')}
+                <label htmlFor="date_entry_uk" className={labelClass}>Date Entered UK</label>
+                <input id="date_entry_uk" type="date" value={form.date_entry_uk} onChange={set('date_entry_uk')}
                   className={inputClass('date_entry_uk')} />
               </div>
               <div>
-                <label className={labelClass}>Marital Status</label>
-                <select value={form.marital_status} onChange={set('marital_status')} className={inputClass('marital_status')}>
+                <label htmlFor="marital_status" className={labelClass}>Marital Status</label>
+                <select id="marital_status" value={form.marital_status} onChange={set('marital_status')} className={inputClass('marital_status')}>
                   <option value="">— Select —</option>
                   {['Single','Married','Divorced','Widowed','Separated','Civil Partnership'].map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -330,8 +330,8 @@ function StaffReviewInner() {
                 {errors.room_number && <p className="text-xxs text-red-500 mt-1">{errors.room_number}</p>}
               </div>
               <div>
-                <label className={labelClass}>Move-in Date *</label>
-                <input type="date" value={form.moved_in} onChange={set('moved_in')}
+                <label htmlFor="moved_in" className={labelClass}>Move-in Date *</label>
+                <input id="moved_in" type="date" value={form.moved_in} onChange={set('moved_in')}
                   className={inputClass('moved_in')} />
                 {errors.moved_in && <p className="text-xxs text-red-500 mt-1">{errors.moved_in}</p>}
               </div>
@@ -409,8 +409,8 @@ function StaffReviewInner() {
                   placeholder="e.g. Universal Credit" className={inputClass('benefit_type')} />
               </div>
               <div>
-                <label className={labelClass}>Payment Frequency</label>
-                <select value={form.benefit_freq} onChange={set('benefit_freq')} className={inputClass('benefit_freq')}>
+                <label htmlFor="benefit_freq_field" className={labelClass}>Payment Frequency</label>
+                <select id="benefit_freq_field" value={form.benefit_freq} onChange={set('benefit_freq')} className={inputClass('benefit_freq')}>
                   <option value="">— Select —</option>
                   {['Weekly','Fortnightly','Monthly','4-Weekly'].map((f) => (
                     <option key={f} value={f}>{f}</option>

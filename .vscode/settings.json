@@ -1,0 +1,8 @@
+{
+  "microsoft-edge-tools.webhint.userConfig": {
+    "hints": {
+      "axe/forms": ["warn"],
+      "no-inline-styles": "off"
+    }
+  }
+}
