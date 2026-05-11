@@ -46,7 +46,12 @@ export default function DashboardPage() {
         .select('*')
         .eq('auth_id', user.id)
         .single();
-      if (userErr) throw userErr;
+      if (userErr) {
+        if (userErr.code === 'PGRST116') {
+          throw new Error(`Staff profile not found for ${user.email}. Run the setup SQL in Supabase to create your Manager account.`);
+        }
+        throw userErr;
+      }
       setCurrentUser(dbUser as DbUser);
 
       // Get tenants (RLS auto-scopes by role)
