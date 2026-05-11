@@ -22,7 +22,8 @@ export type FormId =
   | 'risk'
   | 'missing'
   | 'service'
-  | 'privacy';
+  | 'privacy'
+  | 'ai-brain';
 
 type FormStatus = 'Complete' | 'In Progress' | 'Required' | 'Review' | '';
 

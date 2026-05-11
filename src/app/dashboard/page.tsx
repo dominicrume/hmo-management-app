@@ -115,7 +115,10 @@ export default function DashboardPage() {
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <Sidebar
         activeItem={activeNav}
-        onNavigate={setActiveNav}
+        onNavigate={(id) => {
+          setActiveNav(id);
+          if (id === 'ai-brain') setActiveForm('ai-brain');
+        }}
         role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
         onSignOut={handleSignOut}
         userName={currentUser?.full_name ?? ''}
@@ -279,6 +282,8 @@ export default function DashboardPage() {
             brand={activeBrand}
             activeForm={activeForm}
             activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
+            activeTenantObj={activeTenant}
+            workerId={currentUser?.id}
           />
 
           {/* ── Forms panel ─────────────────────────────────────────────────── */}

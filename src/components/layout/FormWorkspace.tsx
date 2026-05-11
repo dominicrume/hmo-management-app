@@ -3,6 +3,8 @@
 import { Save, Link } from 'lucide-react';
 import type { Brand } from './LetterheadSwitcher';
 import type { FormId } from './FormsPanel';
+import type { DbTenant } from '@/types/database';
+import AIBrainPanel from '@/components/ai/AIBrainPanel';
 
 // ── Brand letterhead configs ──────────────────────────────────────────────────
 
@@ -34,7 +36,7 @@ const LETTERHEAD: Record<Brand, {
 
 // ── Form section definitions ──────────────────────────────────────────────────
 
-const FORM_SECTIONS: Record<FormId, React.ReactNode> = {
+const FORM_SECTIONS: Partial<Record<FormId, React.ReactNode>> = {
   personal: (
     <>
       <Section title="1.0  Personal Information">
@@ -224,19 +226,37 @@ const FORM_TITLES: Record<FormId, string> = {
   missing:    'Missing Person Form',
   service:    'Service Charge Agreement',
   privacy:    'Confidentiality Waiver',
+  'ai-brain': 'AI Brain',
 };
 
 interface Props {
   brand: Brand;
   activeForm: FormId;
   activeTenant: string;
+  activeTenantObj?: DbTenant | null;
+  workerId?: string;
 }
 
-export default function FormWorkspace({ brand, activeForm, activeTenant }: Props) {
+export default function FormWorkspace({ brand, activeForm, activeTenant, activeTenantObj, workerId }: Props) {
   const lh = LETTERHEAD[brand];
   const today = new Date().toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
+
+  // AI Brain gets its own full-height panel, no letterhead wrapper
+  if (activeForm === 'ai-brain') {
+    return (
+      <main className="flex-1 overflow-hidden bg-white">
+        {activeTenantObj && workerId ? (
+          <AIBrainPanel tenant={activeTenantObj} workerId={workerId} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+            Select a tenant to use the AI Brain.
+          </div>
+        )}
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1 overflow-y-auto bg-cream px-8 py-6">

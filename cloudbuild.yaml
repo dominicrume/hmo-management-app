@@ -1,0 +1,62 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/mattys-place:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/mattys-place:latest'
+      - '.'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mattys-place:$COMMIT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mattys-place:latest']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mattys-place'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mattys-place:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-secrets'
+      - 'SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,GOOGLE_VISION_API_KEY=GOOGLE_VISION_API_KEY:latest'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL},NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}'
+
+substitutions:
+  _NEXT_PUBLIC_SUPABASE_URL: 'https://gjfbjyrhkblqdcsmmckb.supabase.co'
+  _NEXT_PUBLIC_SUPABASE_ANON_KEY: ''  # Set in Cloud Build trigger config
+
+images:
+  - 'gcr.io/$PROJECT_ID/mattys-place:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/mattys-place:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_MEDIUM'
