@@ -60,8 +60,15 @@ export default function DashboardPage() {
         .single();
 
       if (userErr) {
-        if (userErr.code === 'PGRST116') {
-          throw new Error(`Staff profile not found for ${user.email}. Run the setup SQL in Supabase to create your Manager account.`);
+        if (userErr.code === 'PGRST116' || userErr.message?.includes('permission denied')) {
+          // No users row yet — auto-create Manager profile via service-role API
+          const setup = await fetch('/api/setup', { method: 'POST' });
+          if (setup.ok) {
+            // Retry loading after setup
+            loadData();
+            return;
+          }
+          throw new Error('First-time setup failed. Please click "Setup Account" below.');
         }
         throw new Error(userErr.message ?? 'Failed to load user profile');
       }
@@ -265,6 +272,22 @@ export default function DashboardPage() {
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
+        {/* ── Dark system status bar — only in form view ────────────────── */}
+        {!isFullWidth && (
+          <div className="no-print bg-navy flex items-center justify-between px-5 py-1.5 flex-shrink-0">
+            <span className="text-xxs font-mono font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              System Status: Operational
+            </span>
+            <span className="text-xxs font-mono font-bold text-slate-400 uppercase tracking-widest">
+              Official Use Only — Restricted Access
+            </span>
+            <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
+              V2.4.0
+            </span>
+          </div>
+        )}
+
         {/* ── Top header ──────────────────────────────────────────────────── */}
         <header className="no-print h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 z-10 flex-shrink-0">
           {/* In form view (no sidebar), show a menu button to get back to dashboard */}
@@ -425,12 +448,22 @@ export default function DashboardPage() {
                   <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                   <p className="text-xxs text-red-600">{error}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await fetch('/api/setup', { method: 'POST' });
+                      loadData();
+                    }}
+                    className="text-xxs font-bold text-amber-dark underline"
+                  >
+                    Setup Account
+                  </button>
                   <button type="button" onClick={loadData} className="text-xxs font-bold text-red-600 underline">
                     Retry
                   </button>
                   <button type="button" onClick={handleSignOut} className="text-xxs font-bold text-red-600 underline">
-                    Sign out &amp; back in
+                    Sign out
                   </button>
                 </div>
               </div>

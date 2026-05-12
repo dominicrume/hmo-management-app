@@ -42,63 +42,63 @@ const FORMS: FormItem[] = [
   {
     id: 'personal',
     title: 'Personal Details',
-    desc: 'Core identity and contact info.',
+    desc: 'Primary identity and contact information collection.',
     icon: <User className="w-4 h-4" />,
     status: 'In Progress',
   },
   {
     id: 'housing',
     title: 'Housing Benefit Claim',
-    desc: 'Financial support processing.',
+    desc: 'Required for financial support processing.',
     icon: <Receipt className="w-4 h-4" />,
     status: 'Required',
   },
   {
     id: 'assessment',
-    title: 'Initial Assessment',
-    desc: 'New intake evaluation.',
+    title: 'Initial Support Plan',
+    desc: 'Council-format support plan with goals.',
     icon: <ClipboardCheck className="w-4 h-4" />,
     status: 'Complete',
   },
   {
     id: 'risk',
     title: 'Risk Assessment',
-    desc: 'Safety and care goals.',
+    desc: 'Safety evaluation and mitigation actions.',
     icon: <ShieldAlert className="w-4 h-4" />,
     status: 'Review',
   },
   {
     id: 'missing',
     title: 'Missing Person',
-    desc: 'Police protocol documentation.',
+    desc: 'Police report and risk profiling documentation.',
     icon: <Search className="w-4 h-4" />,
     status: '',
   },
   {
     id: 'service',
     title: 'Service Charge',
-    desc: 'Weekly utility breakdown.',
+    desc: 'Weekly and monthly utility breakdown.',
     icon: <FileText className="w-4 h-4" />,
     status: '',
   },
   {
     id: 'privacy',
-    title: 'Confidentiality Form',
-    desc: 'Privacy and data consent.',
+    title: 'Confidentiality Waiver',
+    desc: 'GDPR consent and data sharing agreement.',
     icon: <Lock className="w-4 h-4" />,
     status: '',
   },
   {
     id: 'agreement',
-    title: 'Support Agreement',
-    desc: 'Signed support service agreement.',
+    title: 'Support Checklist',
+    desc: 'Arrival and onboarding task sign-off.',
     icon: <FileText className="w-4 h-4" />,
     status: 'Required',
   },
   {
     id: 'induction',
-    title: 'Induction Checklist',
-    desc: 'Tenant onboarding sign-off.',
+    title: 'Admission Checklist',
+    desc: 'Tenant admission items confirmation.',
     icon: <ClipboardCheck className="w-4 h-4" />,
     status: 'Required',
   },
@@ -166,17 +166,17 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant }: Props) 
       aria-label="Forms library"
     >
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
         <div>
-          <p className="text-xxs font-semibold text-slate-400 uppercase tracking-widest">
-            Forms — 1 of 8
+          <p className="text-xxs font-black text-slate-400 uppercase tracking-[0.15em]">
+            Different Forms
           </p>
-          <h2 className="text-xs font-bold text-navy mt-0.5">Form Library</h2>
+          <p className="text-xxs text-slate-400 mt-0.5">Select a form to populate</p>
         </div>
         <button
           type="button"
-          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-amber/20 text-slate-500 hover:text-amber-dark
-                     flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-full bg-navy/10 hover:bg-amber/20 text-navy hover:text-amber-dark
+                     flex items-center justify-center transition-colors font-bold text-sm"
           aria-label="Add new form"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -258,7 +258,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant }: Props) 
           Print All Forms
         </button>
         <p className="text-center text-xxs text-slate-400 font-semibold uppercase tracking-widest pt-1">
-          Export PDF (ISO 32000)
+          Export as Encrypted PDF (ISO 32000)
         </p>
       </div>
     </aside>
