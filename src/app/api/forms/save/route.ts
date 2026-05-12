@@ -4,21 +4,20 @@ import type { AuditAction, EntryMethod } from '@/types/database';
 
 // POST /api/forms/save
 // Body: { form_id, tenant_id, data, stamp }
-// stamp=true  → write to DB + audit log (blockchain stamp)
-// stamp=false → write to DB only (draft)
+// stamp=true  → write to DB + audit log with SHA-256 blockchain hash (computed by DB trigger)
+// stamp=false → write to DB only (draft — no audit stamp)
 
 export async function POST(req: NextRequest) {
   try {
     const { form_id, tenant_id, data, stamp = false } = await req.json();
 
-    if (!form_id)   return NextResponse.json({ error: 'form_id required' }, { status: 400 });
+    if (!form_id)   return NextResponse.json({ error: 'form_id required'   }, { status: 400 });
     if (!tenant_id) return NextResponse.json({ error: 'tenant_id required' }, { status: 400 });
-    if (!data)      return NextResponse.json({ error: 'data required' }, { status: 400 });
+    if (!data)      return NextResponse.json({ error: 'data required'      }, { status: 400 });
 
     const supabase = createClient();
     const svc      = createServiceClient();
 
-    // Resolve the acting user for audit trail
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
 
@@ -31,61 +30,84 @@ export async function POST(req: NextRequest) {
     if (!dbUser) return NextResponse.json({ error: 'Staff profile not found' }, { status: 403 });
 
     let savedRecord: Record<string, unknown> = {};
-    let tableName: string;
-    let recordId: string = tenant_id;
-    let action: AuditAction = stamp ? 'EDIT' : 'EDIT';
+    let tableName:   string;
+    let recordId:    string = tenant_id;
+    let action:      AuditAction = 'EDIT';
     const entryMethod: EntryMethod = 'manual';
 
     // ── Route by form type ────────────────────────────────────────────────────
 
-    if (form_id === 'personal' || form_id === 'missing') {
-      // Both map to the tenants table
-      tableName = 'tenants';
+    // ── Forms 3 & 4: update tenants table ────────────────────────────────────
 
-      const updates =
-        form_id === 'personal'
-          ? {
-              full_name:        data.full_name        || undefined,
-              dob:              data.dob               || undefined,
-              nino:             data.nino              || undefined,
-              nationality:      data.nationality       || undefined,
-              date_entry_uk:    data.date_entry_uk     || null,
-              mobile:           data.mobile            || undefined,
-              email:            data.email             || null,
-              languages:        data.languages         || null,
-              address:          data.address           || undefined,
-              room_number:      data.room_number       || undefined,
-              moved_in:         data.moved_in          || undefined,
-              benefit_type:     data.benefit_type      || undefined,
-              benefit_freq:     data.benefit_freq      || undefined,
-              benefit_amount:   data.benefit_amount    ? parseFloat(data.benefit_amount) : undefined,
-              nok_name:         data.nok_name          || undefined,
-              nok_relation:     data.nok_relation      || undefined,
-              nok_phone:        data.nok_phone         || undefined,
-              nok_address:      data.nok_address       || null,
-              doctor:           data.doctor            || null,
-              probation_officer: data.probation_officer || null,
-            }
-          : {
-              // missing person form
-              physical_description:  data.physical_description  || null,
-              vehicle_registration:  data.vehicle_registration  || null,
-              employer_or_college:   data.employer_or_college   || null,
-              status:                'missing' as const,
-            };
+    if (form_id === 'personal') {
+      tableName = 'tenants';
 
       const { data: updated, error } = await supabase
         .from('tenants')
-        .update(updates)
+        .update({
+          title:             data.title             || undefined,
+          full_name:         data.full_name         || undefined,
+          dob:               data.dob               || undefined,
+          nino:              data.nino              || undefined,
+          nationality:       data.nationality       || undefined,
+          date_entry_uk:     data.date_entry_uk     || null,
+          marital_status:    data.marital_status    || null,
+          mobile:            data.mobile            || undefined,
+          email:             data.email             || null,
+          languages:         data.languages         || null,
+          address:           data.address           || undefined,
+          room_number:       data.room_number       || undefined,
+          moved_in:          data.moved_in          || undefined,
+          benefit_type:      data.benefit_type      || undefined,
+          benefit_freq:      data.benefit_freq      || undefined,
+          benefit_amount:    data.benefit_amount    ? parseFloat(data.benefit_amount) : undefined,
+          nok_name:          data.nok_name          || undefined,
+          nok_relation:      data.nok_relation      || undefined,
+          nok_phone:         data.nok_phone         || undefined,
+          doctor:            data.doctor            || null,
+          on_probation:      data.on_probation      ?? undefined,
+          probation_officer: data.probation_officer || null,
+          place_of_birth:    data.place_of_birth    || null,
+        })
         .eq('id', tenant_id)
         .select()
         .single();
 
-      if (error) throw new Error(`tenants update: ${error.message}`);
+      if (error) throw new Error(`tenants update (personal): ${error.message}`);
       savedRecord = updated as Record<string, unknown>;
-      recordId = tenant_id;
+
+    } else if (form_id === 'missing') {
+      tableName = 'tenants';
+
+      // Compose physical_description from Form04 physical descriptor fields
+      const physParts = [
+        data.height            ? `Height: ${data.height}`                   : '',
+        data.build             ? `Build: ${data.build}`                     : '',
+        data.hair_colour       ? `Hair: ${data.hair_colour}${data.hair_style ? ` (${data.hair_style})` : ''}` : '',
+        data.eye_colour        ? `Eyes: ${data.eye_colour}`                 : '',
+        data.skin_tone         ? `Skin: ${data.skin_tone}`                  : '',
+        data.distinguishing_features ? `Distinguishing: ${data.distinguishing_features}` : '',
+      ].filter(Boolean).join(' · ');
+
+      const { data: updated, error } = await supabase
+        .from('tenants')
+        .update({
+          physical_description:  physParts                    || null,
+          vehicle_registration:  data.vehicle_registration   || null,
+          employer_or_college:   data.employer_or_college    || null,
+          place_of_birth:        data.place_of_birth         || null,
+          marital_status:        data.marital_status         || null,
+          status:                'missing' as const,
+        })
+        .eq('id', tenant_id)
+        .select()
+        .single();
+
+      if (error) throw new Error(`tenants update (missing): ${error.message}`);
+      savedRecord = updated as Record<string, unknown>;
 
     } else if (form_id === 'privacy') {
+      // Form 5 — Confidentiality Waiver: mark tenant as signed
       tableName = 'tenants';
       const { data: updated, error } = await supabase
         .from('tenants')
@@ -97,14 +119,15 @@ export async function POST(req: NextRequest) {
         .select()
         .single();
 
-      if (error) throw new Error(`privacy update: ${error.message}`);
+      if (error) throw new Error(`tenants update (privacy): ${error.message}`);
       savedRecord = updated as Record<string, unknown>;
       action = 'SIGN';
 
     } else if (form_id === 'service') {
+      // Form 6 — Service Charge Agreement: insert into service_charges
       tableName = 'service_charges';
-      const weeklyRate = parseFloat(data.weekly_rate ?? '0');
-      const now  = new Date();
+      const weeklyRate  = parseFloat(data.weekly_rate ?? '0');
+      const now         = new Date();
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const periodEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
@@ -114,7 +137,7 @@ export async function POST(req: NextRequest) {
           tenant_id,
           weekly_rate:    weeklyRate,
           payment_method: data.payment_method || 'Cash',
-          effective_from: data.agreement_start_date || periodStart,
+          effective_from: data.start_date || periodStart,
           effective_to:   null,
           period_start:   periodStart,
           period_end:     periodEnd,
@@ -129,40 +152,28 @@ export async function POST(req: NextRequest) {
 
       if (error) throw new Error(`service_charges insert: ${error.message}`);
       savedRecord = charge as Record<string, unknown>;
-      recordId = (charge as { id: string }).id;
+      recordId    = (charge as { id: string }).id;
+      action      = 'CREATE';
 
-    } else if (form_id === 'assessment' || form_id === 'risk' || form_id === 'housing') {
+    } else if (form_id === 'assessment') {
+      // Form 8 — Initial Support Plan: insert as a session record
       tableName = 'sessions';
 
-      const notesMap: Record<string, string> = {
-        assessment: [
-          data.risk_level       ? `Risk Level: ${data.risk_level}`             : '',
-          data.presenting_needs ? `Presenting Needs:\n${data.presenting_needs}` : '',
-          data.support_goals    ? `Support Goals:\n${data.support_goals}`       : '',
-          data.assigned_worker  ? `Assigned Key Worker: ${data.assigned_worker}` : '',
-          data.review_date      ? `Review Date: ${data.review_date}`            : '',
-        ].filter(Boolean).join('\n\n'),
+      const goalsText = Array.isArray(data.goals)
+        ? (data.goals as Array<{ goal: string; action: string; target_date: string; status: string }>)
+            .map((g, i) => `Goal ${i + 1}: ${g.goal}\nAction: ${g.action}\nTarget: ${g.target_date} · Status: ${g.status}`)
+            .join('\n\n')
+        : '';
 
-        risk: [
-          data.risk_categories  ? `Risk Categories:\n${data.risk_categories}`   : '',
-          data.risk_severity    ? `Overall Severity: ${data.risk_severity}`      : '',
-          data.mitigation_actions ? `Mitigation Actions:\n${data.mitigation_actions}` : '',
-          data.sign_off_name    ? `Sign-Off: ${data.sign_off_name}`             : '',
-          data.sign_off_date    ? `Sign-Off Date: ${data.sign_off_date}`        : '',
-        ].filter(Boolean).join('\n\n'),
-
-        housing: [
-          data.claim_reference  ? `Claim Ref: ${data.claim_reference}`         : '',
-          data.claim_type       ? `Claim Type: ${data.claim_type}`             : '',
-          data.landlord_name    ? `Landlord: ${data.landlord_name}`            : '',
-          data.landlord_account ? `Landlord Account: ${data.landlord_account}` : '',
-          data.weekly_rent      ? `Weekly Rent: £${data.weekly_rent}`          : '',
-          data.claim_start_date ? `Claim Start: ${data.claim_start_date}`      : '',
-          data.assessment_notes ? `Assessment Notes:\n${data.assessment_notes}` : '',
-        ].filter(Boolean).join('\n\n'),
-      };
-
-      const isRisk = form_id === 'risk' && ['High', 'Critical'].includes(data.risk_severity ?? '');
+      const notes = [
+        data.presenting_needs  ? `Presenting Needs:\n${data.presenting_needs}` : '',
+        data.strengths         ? `Strengths:\n${data.strengths}`               : '',
+        data.barriers          ? `Barriers:\n${data.barriers}`                 : '',
+        data.outcome_vision    ? `Desired Outcome:\n${data.outcome_vision}`    : '',
+        goalsText              ? `Goals:\n${goalsText}`                        : '',
+        data.assigned_worker   ? `Assigned Worker: ${data.assigned_worker}`   : '',
+        data.plan_review_date  ? `Review Date: ${data.plan_review_date}`      : '',
+      ].filter(Boolean).join('\n\n');
 
       const { data: session, error } = await supabase
         .from('sessions')
@@ -171,26 +182,183 @@ export async function POST(req: NextRequest) {
           worker_id:    dbUser.id,
           session_type: 'ad_hoc',
           session_date: new Date().toISOString().split('T')[0],
-          notes:        notesMap[form_id] || null,
+          notes:        notes || null,
           entry_method: entryMethod,
-          ai_risk_flag: isRisk,
-          ai_risk_note: isRisk ? `Risk level ${data.risk_severity ?? ''} flagged on form save` : null,
+          ai_risk_flag: false,
           is_signed:    stamp,
         })
         .select()
         .single();
 
-      if (error) throw new Error(`sessions insert: ${error.message}`);
+      if (error) throw new Error(`sessions insert (assessment): ${error.message}`);
       savedRecord = session as Record<string, unknown>;
-      recordId = (session as { id: string }).id;
-      action = stamp ? 'VERIFY' : 'EDIT';
+      recordId    = (session as { id: string }).id;
+      action      = stamp ? 'VERIFY' : 'EDIT';
+
+    } else if (form_id === 'risk') {
+      // Form 7 — Risk Assessment: insert as a session record
+      tableName = 'sessions';
+
+      const isHighRisk = ['High', 'Critical'].includes(data.overall_severity ?? '');
+
+      // Summarise per-category risks from Form07Data shape
+      const riskLines = data.risks
+        ? Object.entries(data.risks as Record<string, { present: boolean; severity: string; mitigation: string }>)
+            .filter(([, v]) => v.present)
+            .map(([k, v]) => `${k}: ${v.severity} — ${v.mitigation}`)
+            .join('\n')
+        : '';
+
+      const notes = [
+        riskLines                   ? `Risk Categories:\n${riskLines}`                   : '',
+        data.overall_severity       ? `Overall Severity: ${data.overall_severity}`       : '',
+        data.immediate_actions      ? `Immediate Actions:\n${data.immediate_actions}`    : '',
+        data.safeguarding_referral  ? `Safeguarding Referral: ${data.safeguarding_agency ?? 'Yes'}` : '',
+        data.additional_notes       ? `Additional Notes:\n${data.additional_notes}`      : '',
+        data.worker_name            ? `Sign-Off: ${data.worker_name}`                   : '',
+        data.review_date            ? `Review Date: ${data.review_date}`                : '',
+      ].filter(Boolean).join('\n\n');
+
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .insert({
+          tenant_id,
+          worker_id:    dbUser.id,
+          session_type: 'ad_hoc',
+          session_date: new Date().toISOString().split('T')[0],
+          notes:        notes || null,
+          entry_method: entryMethod,
+          ai_risk_flag: isHighRisk,
+          ai_risk_note: isHighRisk ? `Risk level ${data.overall_severity} flagged on assessment save` : null,
+          is_signed:    stamp,
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`sessions insert (risk): ${error.message}`);
+      savedRecord = session as Record<string, unknown>;
+      recordId    = (session as { id: string }).id;
+      action      = stamp ? 'VERIFY' : 'EDIT';
+
+    } else if (form_id === 'housing') {
+      // Housing Benefit Claim: insert as a session record
+      tableName = 'sessions';
+
+      const notes = [
+        data.claim_reference  ? `Claim Ref: ${data.claim_reference}`          : '',
+        data.claim_type       ? `Claim Type: ${data.claim_type}`              : '',
+        data.weekly_rent      ? `Weekly Rent: £${data.weekly_rent}`           : '',
+        data.weekly_core_rent ? `Core Rent: £${data.weekly_core_rent}`        : '',
+        data.service_charge   ? `Service Charge: £${data.service_charge}`     : '',
+        data.claim_start_date ? `Claim Start: ${data.claim_start_date}`       : '',
+        data.assessment_notes ? `Assessment Notes:\n${data.assessment_notes}` : '',
+      ].filter(Boolean).join('\n\n');
+
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .insert({
+          tenant_id,
+          worker_id:    dbUser.id,
+          session_type: 'ad_hoc',
+          session_date: new Date().toISOString().split('T')[0],
+          notes:        notes || null,
+          entry_method: entryMethod,
+          is_signed:    stamp,
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`sessions insert (housing): ${error.message}`);
+      savedRecord = session as Record<string, unknown>;
+      recordId    = (session as { id: string }).id;
+      action      = stamp ? 'VERIFY' : 'EDIT';
+
+    } else if (form_id === 'agreement') {
+      // Form 2 — Support Checklist: insert as a session record
+      tableName = 'sessions';
+
+      const formatChecks = (
+        label: string,
+        items: Record<string, boolean>,
+      ) => {
+        const done = Object.entries(items).filter(([, v]) => v).map(([k]) => k);
+        return `${label} (${done.length}/${Object.keys(items).length} completed):\n${done.join(', ') || 'None'}`;
+      };
+
+      const notes = [
+        data.onArrival   ? formatChecks('On Arrival',   data.onArrival   as Record<string, boolean>) : '',
+        data.within3Days ? formatChecks('Within 3 Days', data.within3Days as Record<string, boolean>) : '',
+        data.after3Days  ? formatChecks('After 3 Days',  data.after3Days  as Record<string, boolean>) : '',
+        data.workerNotes ? `Worker Notes:\n${data.workerNotes}` : '',
+        data.workerName  ? `Key Worker: ${data.workerName}`     : '',
+      ].filter(Boolean).join('\n\n');
+
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .insert({
+          tenant_id,
+          worker_id:    dbUser.id,
+          session_type: 'ad_hoc',
+          session_date: new Date().toISOString().split('T')[0],
+          notes:        notes || null,
+          entry_method: entryMethod,
+          is_signed:    stamp,
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`sessions insert (agreement): ${error.message}`);
+      savedRecord = session as Record<string, unknown>;
+      recordId    = (session as { id: string }).id;
+      action      = stamp ? 'VERIFY' : 'EDIT';
+
+    } else if (form_id === 'induction') {
+      // Form 1 — Admission Checklist: insert as a session record
+      tableName = 'sessions';
+
+      const checkedItems = data.items
+        ? Object.entries(data.items as Record<string, boolean>)
+            .filter(([, v]) => v)
+            .map(([k]) => k)
+        : [];
+
+      const notes = [
+        `Admission Checklist: ${checkedItems.length} item(s) confirmed.`,
+        checkedItems.length ? `Confirmed: ${checkedItems.join(', ')}` : '',
+        data.completedBy ? `Completed By: ${data.completedBy}` : '',
+      ].filter(Boolean).join('\n\n');
+
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .insert({
+          tenant_id,
+          worker_id:        dbUser.id,
+          session_type:     'ad_hoc',
+          session_date:     new Date().toISOString().split('T')[0],
+          notes:            notes || null,
+          entry_method:     entryMethod,
+          checklist_items:  checkedItems,
+          is_signed:        stamp,
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`sessions insert (induction): ${error.message}`);
+      savedRecord = session as Record<string, unknown>;
+      recordId    = (session as { id: string }).id;
+      action      = stamp ? 'SIGN' : 'EDIT';
+
     } else {
       return NextResponse.json({ error: `Unknown form_id: ${form_id}` }, { status: 400 });
     }
 
-    // ── Audit log (always on stamp, optional on draft) ────────────────────────
+    // ── Audit log — only on stamp=true ────────────────────────────────────────
+    // The DB trigger trg_audit_hash computes SHA-256 automatically on INSERT.
+    // The tenant UPDATE triggers (trg_audit_tenants_*) also fire automatically.
+    // We only write an explicit audit log entry here for session-based saves
+    // where stamp=true (the DB trigger doesn't cover sessions → audit_logs).
 
-    if (stamp) {
+    if (stamp && tableName === 'sessions') {
       const { error: auditErr } = await svc
         .from('audit_logs')
         .insert({
@@ -203,13 +371,14 @@ export async function POST(req: NextRequest) {
           action,
           entry_method: entryMethod,
           new_data:    data,
-          diff_fields: Object.keys(data),
+          diff_fields: Object.keys(data as object),
         });
 
       if (auditErr) console.error('[audit log]', auditErr.message);
     }
 
     return NextResponse.json({ ok: true, record: savedRecord });
+
   } catch (e: unknown) {
     console.error('[forms/save]', e);
     return NextResponse.json(
