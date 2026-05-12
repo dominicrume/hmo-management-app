@@ -28,7 +28,8 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [activeBrand,    setActiveBrand]    = useState<Brand>('mattys_place');
-  const [activeNav,      setActiveNav]      = useState('dashboard');
+  const [activeNav,      setActiveNav]      = useState('personal');
+  const [navMenuOpen,    setNavMenuOpen]    = useState(false);
   const [activeTenant,   setActiveTenant]   = useState<DbTenant | null>(null);
   const [activeForm,     setActiveForm]     = useState<FormId>('personal');
   const [tenantSearch,   setTenantSearch]   = useState('');
@@ -272,77 +273,104 @@ export default function DashboardPage() {
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
-        {/* ── Dark system status bar — only in form view ────────────────── */}
-        {!isFullWidth && (
-          <div className="no-print bg-navy flex items-center justify-between px-5 py-1.5 flex-shrink-0">
-            <span className="text-xxs font-mono font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              System Status: Operational
-            </span>
-            <span className="text-xxs font-mono font-bold text-slate-400 uppercase tracking-widest">
-              Official Use Only — Restricted Access
-            </span>
-            <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-              V2.4.0
-            </span>
-          </div>
-        )}
+        {/* ── Dark system status bar — always visible ───────────────────── */}
+        <div className="no-print bg-navy flex items-center justify-between px-5 py-1.5 flex-shrink-0">
+          <span className="text-xxs font-mono font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            System Status: Operational
+          </span>
+          <span className="text-xxs font-mono font-bold text-slate-500 uppercase tracking-widest">
+            Official Use Only — Restricted Access
+          </span>
+          <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
+            V2.4.0
+          </span>
+        </div>
 
-        {/* ── Top header ──────────────────────────────────────────────────── */}
-        <header className="no-print h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 z-10 flex-shrink-0">
-          {/* In form view (no sidebar), show a menu button to get back to dashboard */}
-          {!isFullWidth && (
+        {/* ── Top header — V2.4.0 style ─────────────────────────────────── */}
+        <header className="no-print h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-3 z-10 flex-shrink-0">
+
+          {/* Nav menu dropdown */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => handleNavigate('dashboard')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white
-                         text-xxs font-bold hover:bg-navy/80 transition-colors flex-shrink-0"
-              title="Back to dashboard"
+              onClick={() => setNavMenuOpen((v) => !v)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200
+                         text-xs font-bold text-navy transition-colors"
             >
               <span className="text-sm leading-none">☰</span>
-              <span className="hidden sm:inline">Menu</span>
+              <span>Menu</span>
             </button>
-          )}
-          <div className="relative flex-1 max-w-sm">
+            {navMenuOpen && (
+              <div className="absolute left-0 top-10 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                {[
+                  { id: 'dashboard',  label: '⬡ Dashboard' },
+                  { id: 'sessions',   label: '📋 Sessions' },
+                  { id: 'ledger',     label: '💷 Service Charges' },
+                  { id: 'risk',       label: '⚠ Risk Flags' },
+                  { id: 'ai-brain',   label: '🧠 AI Brain' },
+                  { id: 'audit',      label: '🔗 Audit Trail' },
+                  { id: 'print',      label: '🖨 Print & Export' },
+                  { id: 'settings',   label: '⚙ Settings' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => { handleNavigate(item.id); setNavMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700
+                               hover:bg-amber/10 hover:text-navy transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                <div className="border-t border-slate-100 px-4 py-2.5">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="text-xs font-bold text-red-500 hover:text-red-700"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Global search */}
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search tenants, rooms…"
+              placeholder="Global search records, forms, or documents…"
               value={tenantSearch}
               onChange={(e) => setTenantSearch(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-1.5
                          text-xs placeholder-slate-400 focus:outline-none focus:ring-2
                          focus:ring-amber/50 focus:border-amber transition-all"
             />
           </div>
-          <div className="flex-1" />
 
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xxs font-semibold text-emerald-700 uppercase tracking-wider">Live</span>
-          </div>
-
+          {/* Entity switcher */}
           <LetterheadSwitcher value={activeBrand} onChange={setActiveBrand} />
 
+          {/* New intake */}
           <button
             type="button"
-            onClick={() => handleNavigate('audit')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy/5
-                       hover:bg-navy/10 border border-navy/10 transition-colors"
-            title="Blockchain audit trail"
+            onClick={() => router.push('/intake/new')}
+            className="w-8 h-8 rounded-lg bg-navy text-white flex items-center justify-center
+                       font-black text-lg hover:bg-navy/80 transition-colors flex-shrink-0"
+            title="New tenant intake"
           >
-            <Link className="w-3.5 h-3.5 text-navy" />
-            <span className="text-xxs font-mono font-semibold text-navy">Audit</span>
+            +
           </button>
 
-          {/* Notification bell */}
+          {/* Notifications bell */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
-              title={unpaidCount > 0 ? `${unpaidCount} unpaid charge(s)` : 'Notifications'}
-              aria-label={unpaidCount > 0 ? `${unpaidCount} unpaid charge(s)` : 'Notifications'}
-              className="relative w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200
+              aria-label="Notifications"
+              className="relative w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200
                          flex items-center justify-center transition-colors"
             >
               <Bell className="w-4 h-4 text-slate-500" />
@@ -350,16 +378,13 @@ export default function DashboardPage() {
                 <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-amber border-2 border-white" />
               )}
             </button>
-
-            {/* Notifications panel */}
             {notifOpen && (
               <div className="absolute right-0 top-10 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Bell className="w-3.5 h-3.5 text-navy" />
-                    <span className="text-xs font-bold text-navy">Notifications</span>
-                  </div>
-                  <button type="button" aria-label="Close notifications" onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-navy">
+                  <span className="text-xs font-bold text-navy flex items-center gap-2">
+                    <Bell className="w-3.5 h-3.5" /> Notifications
+                  </span>
+                  <button type="button" onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-navy">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -371,9 +396,7 @@ export default function DashboardPage() {
                       <p className="text-xs font-bold text-amber-dark">
                         {unpaidCount} unpaid service charge{unpaidCount !== 1 ? 's' : ''}
                       </p>
-                      <p className="text-xxs text-slate-500 mt-0.5">
-                        Total outstanding: £{unpaidTotal.toFixed(2)}
-                      </p>
+                      <p className="text-xxs text-slate-500 mt-0.5">Total outstanding: £{unpaidTotal.toFixed(2)}</p>
                     </div>
                     <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
                       {unpaidItems.slice(0, 10).map((c) => {
@@ -392,11 +415,8 @@ export default function DashboardPage() {
                       })}
                     </div>
                     <div className="px-4 py-3 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => { setNotifOpen(false); handleNavigate('ledger'); }}
-                        className="w-full text-xs text-amber font-bold hover:text-amber-dark text-center"
-                      >
+                      <button type="button" onClick={() => { setNotifOpen(false); handleNavigate('ledger'); }}
+                        className="w-full text-xs text-amber font-bold hover:text-amber-dark text-center">
                         View full ledger →
                       </button>
                     </div>
