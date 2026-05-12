@@ -24,6 +24,8 @@ export type FormId =
   | 'missing'
   | 'service'
   | 'privacy'
+  | 'agreement'
+  | 'induction'
   | 'ai-brain';
 
 type FormStatus = 'Complete' | 'In Progress' | 'Required' | 'Review' | '';
@@ -85,6 +87,20 @@ const FORMS: FormItem[] = [
     desc: 'Privacy and data consent.',
     icon: <Lock className="w-4 h-4" />,
     status: '',
+  },
+  {
+    id: 'agreement',
+    title: 'Support Agreement',
+    desc: 'Signed support service agreement.',
+    icon: <FileText className="w-4 h-4" />,
+    status: 'Required',
+  },
+  {
+    id: 'induction',
+    title: 'Induction Checklist',
+    desc: 'Tenant onboarding sign-off.',
+    icon: <ClipboardCheck className="w-4 h-4" />,
+    status: 'Required',
   },
 ];
 

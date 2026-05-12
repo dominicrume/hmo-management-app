@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const svc = createServiceClient();
     let query = svc
       .from('sessions')
-      .select('*, users(full_name, role)')
+      .select('*, users!sessions_worker_id_fkey(full_name, role)')
       .order('session_date', { ascending: false })
       .order('created_at',   { ascending: false })
       .limit(limit);

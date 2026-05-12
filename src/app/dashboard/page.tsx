@@ -22,7 +22,7 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import type { DbTenant, DbUser } from '@/types/database';
 
 // ── Views that use the full-width layout (no forms panel) ─────────────────────
-const FULL_WIDTH_VIEWS = new Set(['dashboard', 'tenants', 'sessions', 'ledger', 'risk', 'audit', 'print', 'ai-brain']);
+const FULL_WIDTH_VIEWS = new Set(['dashboard', 'tenants', 'sessions', 'ledger', 'risk', 'audit', 'print', 'ai-brain', 'settings']);
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         if (userErr.code === 'PGRST116') {
           throw new Error(`Staff profile not found for ${user.email}. Run the setup SQL in Supabase to create your Manager account.`);
         }
-        throw userErr;
+        throw new Error(userErr.message ?? 'Failed to load user profile');
       }
       setCurrentUser(dbUser as DbUser);
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
         .from('tenants')
         .select('*')
         .order('full_name');
-      if (tenantErr) throw tenantErr;
+      if (tenantErr) throw new Error(tenantErr.message ?? 'Failed to load tenants');
 
       const rows = (tenantRows ?? []) as DbTenant[];
       setTenants(rows);
@@ -184,6 +184,41 @@ export default function DashboardPage() {
         return <AuditView activeTenant={activeTenant} />;
       case 'print':
         return <PrintView tenants={tenants} activeTenant={activeTenant} />;
+      case 'settings':
+        return (
+          <main className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-lg font-black text-navy mb-1">Settings</h2>
+              <p className="text-xs text-slate-400 mb-8">Account and system configuration for Matty&apos;s Place.</p>
+              <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-navy">Signed in as</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{currentUser?.full_name ?? '—'} · {currentUser?.email ?? ''}</p>
+                  </div>
+                  <span className="text-xxs font-black uppercase px-2 py-1 bg-amber/20 text-amber-dark rounded-lg">
+                    {currentUser?.role ?? 'Manager'}
+                  </span>
+                </div>
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-navy">Organisation</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Matty&apos;s Place — Birmingham HMO</p>
+                  </div>
+                </div>
+                <div className="px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </main>
+        );
       default:
         // 'ai-brain' and any form nav — show the form workspace + forms panel
         return (
@@ -215,7 +250,6 @@ export default function DashboardPage() {
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <div className="no-print">
       <Sidebar
         activeItem={activeNav}
         onNavigate={handleNavigate}
@@ -223,9 +257,9 @@ export default function DashboardPage() {
         onSignOut={handleSignOut}
         userName={currentUser?.full_name ?? ''}
         userRole={currentUser?.role ?? 'Manager'}
+        tenantCount={tenants.length}
+        riskCount={tenants.filter((t) => t.status === 'missing').length}
       />
-
-      </div>
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
@@ -416,10 +450,9 @@ export default function DashboardPage() {
                         aria-label={`Select tenant ${tenant.full_name}`}
                         onClick={() => {
                           setActiveTenant(tenant);
-                          // If on a full-width view, stay there but update context
-                          // If on forms view, keep showing forms
-                          if (!FULL_WIDTH_VIEWS.has(activeNav)) {
-                            setActiveNav('forms');
+                          // Navigate to forms view when tenant selected from full-width views
+                          if (FULL_WIDTH_VIEWS.has(activeNav)) {
+                            setActiveNav(activeForm);
                           }
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all

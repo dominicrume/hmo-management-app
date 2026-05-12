@@ -24,33 +24,42 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard',  label: 'Dashboard',       icon: <LayoutDashboard className="w-4 h-4" /> },
-  { id: 'tenants',    label: 'Tenants',          icon: <Users className="w-4 h-4" />, badge: '24' },
+  { id: 'tenants',    label: 'Tenants',          icon: <Users className="w-4 h-4" /> },
   { id: 'intake',     label: 'Intake Pipeline',  icon: <FileText className="w-4 h-4" /> },
   { id: 'sessions',   label: 'Sessions',         icon: <FileText className="w-4 h-4" /> },
   { id: 'ledger',     label: 'Service Charges',  icon: <Receipt className="w-4 h-4" />, managerOnly: true },
-  { id: 'risk',       label: 'Risk Flags',       icon: <ShieldAlert className="w-4 h-4" />, badge: '2' },
+  { id: 'risk',       label: 'Risk Flags',       icon: <ShieldAlert className="w-4 h-4" /> },
   { id: 'ai-brain',   label: 'AI Brain',         icon: <Brain className="w-4 h-4" /> },
   { id: 'audit',      label: 'Audit Trail',      icon: <Link className="w-4 h-4" />, managerOnly: true },
   { id: 'print',      label: 'Print & Export',   icon: <Printer className="w-4 h-4" />, managerOnly: true },
 ];
 
 interface Props {
-  activeItem: string;
-  onNavigate: (id: string) => void;
-  role?:      'Manager' | 'SupportWorker';
-  onSignOut?: () => void;
-  userName?:  string;
-  userRole?:  string;
+  activeItem:    string;
+  onNavigate:    (id: string) => void;
+  role?:         'Manager' | 'SupportWorker';
+  onSignOut?:    () => void;
+  userName?:     string;
+  userRole?:     string;
+  tenantCount?:  number;
+  riskCount?:    number;
 }
 
 export default function Sidebar({
   activeItem, onNavigate, role = 'Manager', onSignOut, userName, userRole,
+  tenantCount, riskCount,
 }: Props) {
   const visible = NAV_ITEMS.filter((item) => !item.managerOnly || role === 'Manager');
 
+  const dynamicBadge = (id: string): string | undefined => {
+    if (id === 'tenants' && tenantCount !== undefined) return String(tenantCount);
+    if (id === 'risk'    && riskCount    !== undefined && riskCount > 0) return String(riskCount);
+    return undefined;
+  };
+
   return (
     <aside
-      className="w-sidebar min-w-sidebar bg-navy flex flex-col h-full overflow-hidden"
+      className="no-print w-sidebar min-w-sidebar bg-navy flex flex-col h-full overflow-hidden"
       aria-label="Main navigation"
     >
       {/* Logo area */}
@@ -90,14 +99,14 @@ export default function Sidebar({
                     {item.icon}
                   </span>
                   <span className="flex-1 truncate">{item.label}</span>
-                  {item.badge && (
+                  {dynamicBadge(item.id) && (
                     <span
                       className={`
                         text-xxs font-bold px-1.5 py-0.5 rounded-full
                         ${isActive ? 'bg-navy text-amber' : 'bg-navy-muted text-slate-300'}
                       `}
                     >
-                      {item.badge}
+                      {dynamicBadge(item.id)}
                     </span>
                   )}
                   {isActive && (
@@ -112,7 +121,15 @@ export default function Sidebar({
 
       {/* Footer */}
       <div className="border-t border-navy-border px-2 py-3 space-y-0.5">
-        <button type="button" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-navy-light transition-colors">
+        <button
+          type="button"
+          onClick={() => onNavigate('settings')}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-colors
+            ${activeItem === 'settings'
+              ? 'bg-amber text-navy font-semibold'
+              : 'text-slate-400 hover:text-white hover:bg-navy-light'
+            }`}
+        >
           <Settings className="w-4 h-4 text-slate-500" />
           Settings
         </button>
