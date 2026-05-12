@@ -38,34 +38,21 @@ interface FormItem {
   status: FormStatus;
 }
 
+// Forms ordered to match the actual operational workflow from the support checklist document
 const FORMS: FormItem[] = [
+  {
+    id: 'housing',
+    title: 'Housing Benefit Claim',
+    desc: 'Complete first on arrival — online application or Change of Circumstance.',
+    icon: <Receipt className="w-4 h-4" />,
+    status: 'Required',
+  },
   {
     id: 'personal',
     title: 'Personal Details',
     desc: 'Primary identity and contact information collection.',
     icon: <User className="w-4 h-4" />,
     status: 'In Progress',
-  },
-  {
-    id: 'housing',
-    title: 'Housing Benefit Claim',
-    desc: 'Required for financial support processing.',
-    icon: <Receipt className="w-4 h-4" />,
-    status: 'Required',
-  },
-  {
-    id: 'assessment',
-    title: 'Initial Support Plan',
-    desc: 'Council-format support plan with goals.',
-    icon: <ClipboardCheck className="w-4 h-4" />,
-    status: 'Complete',
-  },
-  {
-    id: 'risk',
-    title: 'Risk Assessment',
-    desc: 'Safety evaluation and mitigation actions.',
-    icon: <ShieldAlert className="w-4 h-4" />,
-    status: 'Review',
   },
   {
     id: 'missing',
@@ -75,9 +62,23 @@ const FORMS: FormItem[] = [
     status: '',
   },
   {
+    id: 'agreement',
+    title: 'Support Checklist',
+    desc: 'On arrival, within 3 days, and after 3 days task sign-off.',
+    icon: <FileText className="w-4 h-4" />,
+    status: 'Required',
+  },
+  {
+    id: 'assessment',
+    title: 'Initial Assessment',
+    desc: 'Needs assessment completed with service user on arrival.',
+    icon: <ClipboardCheck className="w-4 h-4" />,
+    status: '',
+  },
+  {
     id: 'service',
     title: 'Service Charge',
-    desc: 'Weekly and monthly utility breakdown.',
+    desc: 'Service charge letter — weekly and monthly breakdown.',
     icon: <FileText className="w-4 h-4" />,
     status: '',
   },
@@ -89,18 +90,18 @@ const FORMS: FormItem[] = [
     status: '',
   },
   {
-    id: 'agreement',
-    title: 'Support Checklist',
-    desc: 'Arrival and onboarding task sign-off.',
-    icon: <FileText className="w-4 h-4" />,
-    status: 'Required',
+    id: 'risk',
+    title: 'Risk Assessment',
+    desc: 'Internal document — complete within 3 days, email to senior for approval.',
+    icon: <ShieldAlert className="w-4 h-4" />,
+    status: '',
   },
   {
     id: 'induction',
     title: 'Admission Checklist',
-    desc: 'Tenant admission items confirmation.',
+    desc: 'Tenant admission confirmation and key handover.',
     icon: <ClipboardCheck className="w-4 h-4" />,
-    status: 'Required',
+    status: '',
   },
 ];
 

@@ -8,33 +8,31 @@
 import { useState } from 'react';
 import { CheckboxField, TextareaField, FormSection, FormActions } from './FormField';
 
+// Exact items from the Ash Shahada Support Checklist operational document
 const ON_ARRIVAL: { id: string; label: string }[] = [
-  { id: 'room_shown',          label: 'Room shown to tenant and key given' },
-  { id: 'house_rules',         label: 'House rules explained verbally' },
-  { id: 'emergency_contacts',  label: 'Emergency contact numbers provided' },
-  { id: 'fire_safety',         label: 'Fire safety and evacuation route explained' },
-  { id: 'wifi_facilities',     label: 'WiFi, kitchen, and shared facilities explained' },
-  { id: 'benefits_status',     label: 'Benefits status checked — claim active or initiated' },
-  { id: 'initial_risk_check',  label: 'Initial risk check completed verbally' },
+  { id: 'hb_form_completed',   label: 'Housing Benefit Application completed online (or Change of Circumstance if previously claiming HB)' },
+  { id: 'hb_reference_noted',  label: 'HB reference number noted and recorded on property database (shared Gmail Drive)' },
+  { id: 'personal_details',    label: 'Personal Details Form completed with resident' },
+  { id: 'missing_person_form', label: 'Missing Person Form completed with resident' },
+  { id: 'support_agreement',   label: 'Support Agreement explained to resident and signed' },
+  { id: 'initial_assessment',  label: 'Initial Assessment / Needs Assessment completed with service user' },
+  { id: 'service_charge_letter', label: 'Service Charge letter completed and given to resident' },
+  { id: 'confidentiality_form', label: 'Confidentiality Form signed by resident' },
+  { id: 'daily_case_note',     label: 'Daily case note completed recording all information discussed on this visit' },
+  { id: 'next_appointment',    label: 'Next appointment booked for the following week' },
 ];
 
 const WITHIN_3_DAYS: { id: string; label: string }[] = [
-  { id: 'personal_form',       label: 'Personal Details Form (Form 3) completed' },
-  { id: 'missing_person_form', label: 'Missing Person Form (Form 4) completed' },
-  { id: 'confidentiality',     label: 'Confidentiality Waiver (Form 5) signed' },
-  { id: 'service_charge_agree',label: 'Service Charge Agreement (Form 6) signed' },
-  { id: 'gp_registered',       label: 'GP registration checked or initiated' },
-  { id: 'bank_account',        label: 'Bank account status checked' },
-  { id: 'id_documents',        label: 'ID documents viewed and recorded' },
+  { id: 'risk_assessment_completed', label: 'Risk Assessment completed by support worker (internal document — not shared with resident)' },
+  { id: 'risk_assessment_emailed',   label: 'Risk Assessment emailed to senior for approval' },
 ];
 
 const AFTER_3_DAYS: { id: string; label: string }[] = [
-  { id: 'risk_assessment',     label: 'Full Risk Assessment (Form 7) completed' },
-  { id: 'support_plan',        label: 'Initial Support Plan (Form 8) drafted' },
-  { id: 'key_worker_assigned', label: 'Key worker assigned and introduced' },
-  { id: 'first_session',       label: 'First formal support session recorded' },
-  { id: 'council_notified',    label: 'Birmingham City Council notified (if required)' },
-  { id: 'benefit_claim_check', label: 'Benefit claim progressed and reference number recorded' },
+  { id: 'support_plan_drafted',  label: 'Support Plan completed using referral and Initial/Needs Assessment' },
+  { id: 'appointment_made',      label: 'Appointment made within 1 week for resident to review and sign Support Plan' },
+  { id: 'resident_signed_plan',  label: 'Resident signed Support Plan confirming they are happy with the goals set' },
+  { id: 'quarterly_review_set',  label: 'Quarterly review date set (reviewed immediately if outstanding issues arise)' },
+  { id: 'ongoing_recording',     label: 'Confirmed: all ongoing interactions will be recorded on daily case notes or Key Work Session Notes' },
 ];
 
 export interface Form02Data {
@@ -121,7 +119,7 @@ export default function Form02SupportChecklist({ initialData, onSubmit, onSaveDr
     <div>
       <FormSection title="On Arrival" number="1.0">
         <CheckGroup
-          title="Complete on the day of arrival"
+          title="Complete on the day of arrival — Housing Benefit application first, then all sign-up pack paperwork"
           items={ON_ARRIVAL}
           values={onArrival}
           onChange={set(setOnArrival)}
@@ -130,7 +128,7 @@ export default function Form02SupportChecklist({ initialData, onSubmit, onSaveDr
 
       <FormSection title="Within 3 Days" number="2.0">
         <CheckGroup
-          title="Complete within 72 hours of move-in"
+          title="Support worker responsible — Risk Assessment is an internal document, not shared with the resident"
           items={WITHIN_3_DAYS}
           values={within3Days}
           onChange={set(setWithin3Days)}
@@ -139,7 +137,7 @@ export default function Form02SupportChecklist({ initialData, onSubmit, onSaveDr
 
       <FormSection title="After 3 Days" number="3.0">
         <CheckGroup
-          title="Complete within the first week"
+          title="Support Plan drafted and appointment made within 1 week for resident to sign — all interactions must be recorded"
           items={AFTER_3_DAYS}
           values={after3Days}
           onChange={set(setAfter3Days)}
