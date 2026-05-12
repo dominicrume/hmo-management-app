@@ -249,22 +249,37 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <Sidebar
-        activeItem={activeNav}
-        onNavigate={handleNavigate}
-        role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
-        onSignOut={handleSignOut}
-        userName={currentUser?.full_name ?? ''}
-        userRole={currentUser?.role ?? 'Manager'}
-        tenantCount={tenants.length}
-        riskCount={tenants.filter((t) => t.status === 'missing').length}
-      />
+      {/* ── Sidebar — only shown in full-width views (dashboard, sessions, etc.) ── */}
+      {isFullWidth && (
+        <Sidebar
+          activeItem={activeNav}
+          onNavigate={handleNavigate}
+          role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
+          onSignOut={handleSignOut}
+          userName={currentUser?.full_name ?? ''}
+          userRole={currentUser?.role ?? 'Manager'}
+          tenantCount={tenants.length}
+          riskCount={tenants.filter((t) => t.status === 'missing').length}
+        />
+      )}
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
         {/* ── Top header ──────────────────────────────────────────────────── */}
         <header className="no-print h-14 bg-white border-b border-slate-200 flex items-center px-5 gap-4 z-10 flex-shrink-0">
+          {/* In form view (no sidebar), show a menu button to get back to dashboard */}
+          {!isFullWidth && (
+            <button
+              type="button"
+              onClick={() => handleNavigate('dashboard')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-navy text-white
+                         text-xxs font-bold hover:bg-navy/80 transition-colors flex-shrink-0"
+              title="Back to dashboard"
+            >
+              <span className="text-sm leading-none">☰</span>
+              <span className="hidden sm:inline">Menu</span>
+            </button>
+          )}
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input

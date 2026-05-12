@@ -118,12 +118,13 @@ function StaffReviewInner() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace('/login'); return; }
 
+      // nok_address is not a DB column — omit it from the insert payload
+      const { nok_address: _nok_address, ...formWithoutNokAddress } = form;
       const payload = {
-        ...form,
+        ...formWithoutNokAddress,
         brand,
         benefit_amount:  parseFloat(form.benefit_amount) || 0,
         date_entry_uk:   form.date_entry_uk   || null,
-        nok_address:     form.nok_address     || null,
         doctor:          form.doctor          || null,
         place_of_birth:  form.place_of_birth  || null,
         marital_status:  form.marital_status  || null,
@@ -143,7 +144,7 @@ function StaffReviewInner() {
         .select('id')
         .single();
 
-      if (insertErr) throw insertErr;
+      if (insertErr) throw new Error(insertErr.message);
 
       // Write audit log
       await supabase.from('audit_logs').insert({
