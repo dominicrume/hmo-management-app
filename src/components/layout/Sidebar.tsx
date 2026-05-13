@@ -68,7 +68,7 @@ export default function Sidebar({
           HMO Management
         </p>
         <h1 className="text-white font-bold text-sm leading-tight">
-          Matty's Place
+          Matty&apos;s Place
         </h1>
         <p className="text-slate-500 text-xxs mt-0.5">
           {role === 'Manager' ? '⬡ Manager Portal' : '⬡ Support Worker'}
@@ -79,7 +79,8 @@ export default function Sidebar({
       <nav className="flex-1 overflow-y-auto py-3 px-2" aria-label="Primary">
         <ul className="space-y-0.5">
           {visible.map((item) => {
-            const isActive = item.id === activeItem;
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeItem);
+            const isActive = item.id === activeItem || (item.id === 'tenants' && isUUID);
             return (
               <li key={item.id}>
                 <button

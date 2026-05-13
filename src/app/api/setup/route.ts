@@ -10,8 +10,9 @@ export async function POST() {
     const supabase = createClient();
     const svc      = createServiceClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    console.log('[setup] user:', user?.id, 'err:', authErr);
+    if (!user) return NextResponse.json({ error: 'Not authenticated', details: authErr }, { status: 401 });
 
     // Check if a users row already exists
     const { data: existing } = await svc

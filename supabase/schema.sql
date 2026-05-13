@@ -95,6 +95,7 @@ CREATE TABLE tenants (
   nok_name              TEXT NOT NULL,
   nok_relation          TEXT NOT NULL,
   nok_phone             TEXT NOT NULL,
+  nok_address           TEXT,
 
   -- 6. Medical & Professional
   doctor                TEXT,                                   -- GP name + surgery

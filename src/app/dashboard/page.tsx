@@ -258,18 +258,16 @@ export default function DashboardPage() {
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
       {/* ── Sidebar — only shown in full-width views (dashboard, sessions, etc.) ── */}
-      {isFullWidth && (
-        <Sidebar
-          activeItem={activeNav}
-          onNavigate={handleNavigate}
-          role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
-          onSignOut={handleSignOut}
-          userName={currentUser?.full_name ?? ''}
-          userRole={currentUser?.role ?? 'Manager'}
-          tenantCount={tenants.length}
-          riskCount={tenants.filter((t) => t.status === 'missing').length}
-        />
-      )}
+      <Sidebar
+        activeItem={activeNav}
+        onNavigate={handleNavigate}
+        role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
+        onSignOut={handleSignOut}
+        userName={currentUser?.full_name ?? ''}
+        userRole={currentUser?.role ?? 'Manager'}
+        tenantCount={tenants.length}
+        riskCount={tenants.filter((t) => t.status === 'missing').length}
+      />
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
@@ -290,51 +288,6 @@ export default function DashboardPage() {
         {/* ── Top header — V2.4.0 style ─────────────────────────────────── */}
         <header className="no-print h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-3 z-10 flex-shrink-0">
 
-          {/* Nav menu dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setNavMenuOpen((v) => !v)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200
-                         text-xs font-bold text-navy transition-colors"
-            >
-              <span className="text-sm leading-none">☰</span>
-              <span>Menu</span>
-            </button>
-            {navMenuOpen && (
-              <div className="absolute left-0 top-10 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                {[
-                  { id: 'dashboard',  label: '⬡ Dashboard' },
-                  { id: 'sessions',   label: '📋 Sessions' },
-                  { id: 'ledger',     label: '💷 Service Charges' },
-                  { id: 'risk',       label: '⚠ Risk Flags' },
-                  { id: 'ai-brain',   label: '🧠 AI Brain' },
-                  { id: 'audit',      label: '🔗 Audit Trail' },
-                  { id: 'print',      label: '🖨 Print & Export' },
-                  { id: 'settings',   label: '⚙ Settings' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => { handleNavigate(item.id); setNavMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-700
-                               hover:bg-amber/10 hover:text-navy transition-colors"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-                <div className="border-t border-slate-100 px-4 py-2.5">
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="text-xs font-bold text-red-500 hover:text-red-700"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Global search */}
           <div className="relative flex-1">
@@ -518,8 +471,9 @@ export default function DashboardPage() {
                         aria-label={`Select tenant ${tenant.full_name}`}
                         onClick={() => {
                           setActiveTenant(tenant);
-                          // Navigate to forms view when tenant selected from full-width views
-                          if (FULL_WIDTH_VIEWS.has(activeNav)) {
+                          // Only navigate to forms view if selecting a tenant from the global dashboard view.
+                          // Otherwise, stay in the current view (e.g. Ledger) to see that tenant's specific data.
+                          if (activeNav === 'dashboard' || activeNav === 'tenants') {
                             setActiveNav(activeForm);
                           }
                         }}

@@ -83,21 +83,23 @@ export default function AuditView({ activeTenant }: Props) {
           <Loader2 className="w-6 h-6 text-slate-300 animate-spin" />
         </div>
       ) : logs.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl py-16 text-center">
-          <Link className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm text-slate-400">No audit entries yet.</p>
-          <p className="text-xs text-slate-300 mt-1">Every save, sign, and edit will appear here.</p>
+        <div className="bg-gradient-to-b from-white to-slate-50/50 border border-slate-200 rounded-2xl py-24 text-center shadow-sm">
+          <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-4">
+            <ShieldCheck className="w-8 h-8 text-emerald-500 animate-pulse" />
+          </div>
+          <p className="text-sm font-semibold text-navy">No audit entries yet</p>
+          <p className="text-xs text-slate-400 mt-1">Every save, sign, and edit will be immutably recorded here.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm ring-1 ring-slate-900/5">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Action</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Actor</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Table</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Timestamp</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">SHA-256 Hash</th>
+              <tr className="border-b border-slate-200/60 bg-gradient-to-r from-slate-50/80 to-white/80">
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Action</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Actor</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Table</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">SHA-256 Hash</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">

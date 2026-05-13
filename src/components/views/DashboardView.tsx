@@ -123,7 +123,7 @@ export default function DashboardView({ tenants, currentUser, onNavigate, onNewI
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
 
         {/* Recent audit trail */}
-        <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm ring-1 ring-slate-900/5">
           <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Link className="w-3.5 h-3.5 text-navy" />
@@ -169,7 +169,7 @@ export default function DashboardView({ tenants, currentUser, onNavigate, onNewI
           )}
 
           {/* Recent tenants */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm ring-1 ring-slate-900/5">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5 text-navy" />
@@ -206,7 +206,7 @@ export default function DashboardView({ tenants, currentUser, onNavigate, onNewI
           </div>
 
           {/* Quick links */}
-          <div className="bg-navy rounded-xl p-4 space-y-2">
+          <div className="bg-gradient-to-b from-navy to-[#0f172a] rounded-2xl p-4 space-y-2 shadow-lg ring-1 ring-white/10">
             <p className="text-xxs font-black text-slate-400 uppercase tracking-widest mb-3">Quick Actions</p>
             {[
               { label: 'Start Intake',        nav: 'intake' },
@@ -243,7 +243,7 @@ function KPICard({
     <button
       type="button"
       onClick={onClick}
-      className="bg-white rounded-xl border border-slate-200 p-4 text-left hover:shadow-md transition-all group"
+      className="bg-white/80 backdrop-blur-xl rounded-2xl border border-slate-200/60 p-5 text-left shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all group ring-1 ring-slate-900/5"
     >
       <div className={`w-8 h-8 rounded-lg ${colour} flex items-center justify-center mb-3 ${textDark ? 'text-navy' : 'text-white'}`}>
         {icon}

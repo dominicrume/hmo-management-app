@@ -57,7 +57,7 @@ Based on these session notes, generate exactly 3 targeted follow-up questions fo
 Format your response as a JSON object with a single key "questions" containing an array of exactly 3 strings. No preamble, no explanation — just the JSON.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -67,19 +67,8 @@ Format your response as a JSON object with a single key "questions" containing a
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [raw] };
 
     // Store in ai_suggestions
-    if (worker_id) {
-      await supabase.from('ai_suggestions').insert({
-        tenant_id,
-        worker_id,
-        suggestion_type: 'session_questions',
-        prompt,
-        response: raw,
-        model: 'claude-sonnet-4-6',
-        input_tokens:  message.usage.input_tokens,
-        output_tokens: message.usage.output_tokens,
-        metadata: { session_count: sessions.length },
-      });
-    }
+    // ai_suggestions table does not exist in schema, skipping insert to prevent 500 crashes
+    console.log('[AI questions] Successfully generated questions for tenant');
 
     return NextResponse.json({ questions: parsed.questions, source: 'ai' });
   } catch (e: unknown) {

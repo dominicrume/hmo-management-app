@@ -4,7 +4,7 @@
 // Server-side only — API key never exposed to the browser.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { callGoogleVisionOCR } from '@/lib/ocr/googleVision';
+import { callClaudeVisionOCR } from '@/lib/ocr/claudeVision';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'application/pdf'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await fileObj.arrayBuffer();
     const base64      = Buffer.from(arrayBuffer).toString('base64');
 
-    const result = await callGoogleVisionOCR(base64, fileObj.type);
+    const result = await callClaudeVisionOCR(base64, fileObj.type);
 
     return NextResponse.json({
       success:    true,

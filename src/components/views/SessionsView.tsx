@@ -197,10 +197,12 @@ export default function SessionsView({ activeTenant, currentUser, tenants }: Pro
           <Loader2 className="w-6 h-6 text-slate-300 animate-spin" />
         </div>
       ) : sessions.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl py-16 text-center">
-          <CalendarDays className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm text-slate-400">No sessions recorded yet.</p>
-          <button type="button" onClick={() => setShowForm(true)} className="mt-3 text-xs text-amber font-semibold hover:text-amber-dark">
+        <div className="bg-gradient-to-b from-white to-slate-50/50 border border-slate-200 rounded-2xl py-24 text-center shadow-sm">
+          <div className="w-16 h-16 mx-auto bg-amber/10 rounded-full flex items-center justify-center mb-4">
+            <CalendarDays className="w-8 h-8 text-amber animate-pulse" />
+          </div>
+          <p className="text-sm font-semibold text-navy">No sessions recorded</p>
+          <button type="button" onClick={() => setShowForm(true)} className="mt-3 text-xs text-amber font-bold hover:text-amber-dark hover:underline transition-all">
             Log the first session →
           </button>
         </div>
@@ -209,11 +211,11 @@ export default function SessionsView({ activeTenant, currentUser, tenants }: Pro
           {sessions.map((s) => {
             const isOpen = expanded === s.id;
             return (
-              <div key={s.id} className={`bg-white border rounded-xl overflow-hidden transition-all ${s.ai_risk_flag ? 'border-red-200' : 'border-slate-200'}`}>
+              <div key={s.id} className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all ${s.ai_risk_flag ? 'border-red-200 ring-1 ring-red-100' : 'border-slate-200'}`}>
                 <button
                   type="button"
                   onClick={() => setExpanded(isOpen ? null : s.id)}
-                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors"
+                  className={`w-full flex items-center gap-4 px-5 py-4 text-left transition-colors ${isOpen ? 'bg-slate-50/50' : 'hover:bg-slate-50'}`}
                 >
                   <div className={`p-1.5 rounded-lg flex-shrink-0 ${s.ai_risk_flag ? 'bg-red-100 text-red-500' : 'bg-slate-100 text-navy'}`}>
                     {entryIcon(s.entry_method)}

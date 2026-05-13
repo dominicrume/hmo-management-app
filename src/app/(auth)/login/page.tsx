@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber mb-4">
             <Lock className="w-5 h-5 text-navy" />
           </div>
-          <h1 className="text-white font-black text-xl tracking-tight">Matty's Place</h1>
+          <h1 className="text-white font-black text-xl tracking-tight">Matty&apos;s Place</h1>
           <p className="text-slate-400 text-xs mt-1">Staff Portal — Sign In</p>
         </div>
 
@@ -130,7 +130,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xxs text-slate-600 mt-6">
-          Ash Shahada Housing Association Ltd · Matty's Place · Reliance Housing
+          Ash Shahada Housing Association Ltd · Matty&apos;s Place · Reliance Housing
         </p>
       </div>
     </div>

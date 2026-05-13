@@ -54,7 +54,7 @@ ${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ??
 `;
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [
@@ -68,20 +68,9 @@ ${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ??
     const riskKeywords = ['safeguarding', 'risk', 'concern', 'urgent', 'immediate', 'deteriorat', 'arrears', 'eviction'];
     const isRisk = riskKeywords.some((kw) => response.toLowerCase().includes(kw));
 
-    // Store result
-    if (worker_id) {
-      await supabase.from('ai_suggestions').insert({
-        tenant_id,
-        worker_id,
-        suggestion_type: task_type,
-        prompt: task,
-        response,
-        model: 'claude-sonnet-4-6',
-        input_tokens:  message.usage.input_tokens,
-        output_tokens: message.usage.output_tokens,
-        metadata: { risk_detected: isRisk },
-      });
-    }
+    // Table ai_suggestions does not exist in schema.sql. Skipping insertion to prevent 500 error.
+    // We still return the JSON correctly to the frontend.
+    console.log('[AI brain] Returning response for task:', task_type);
 
     return NextResponse.json({ response, risk_detected: isRisk, tokens: message.usage });
   } catch (e: unknown) {

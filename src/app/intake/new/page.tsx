@@ -118,7 +118,7 @@ export default function IntakeNewPage() {
           {/* Entry mode selector */}
           <div className="bg-navy-light border border-navy-border rounded-2xl p-5 space-y-3">
             <p className="text-xxs font-black text-slate-400 uppercase tracking-wider mb-1">
-              How are you entering this tenant's data?
+              How are you entering this tenant&apos;s data?
             </p>
 
             {/* Manual */}
@@ -227,7 +227,7 @@ export default function IntakeNewPage() {
                   Voice-to-Text Entry
                 </p>
                 <p className="text-xxs text-slate-500 mt-0.5">
-                  Speak the tenant's details — system transcribes in real time
+                  Speak the tenant&apos;s details — system transcribes in real time
                 </p>
               </div>
               {mode === 'voice' && (

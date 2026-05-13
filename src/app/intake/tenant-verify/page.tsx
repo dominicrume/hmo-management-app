@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
+import { stampAuditOnChain } from '@/lib/blockchain';
 import {
   CheckCircle2, AlertTriangle, ChevronRight, ArrowLeft,
   PenLine, RotateCcw, User
@@ -104,6 +105,23 @@ export default function TenantVerifyPage() {
       const sigData    = getSignatureDataUrl();
       const signedAt   = new Date().toISOString();
 
+      // Hash for blockchain
+      const dataString = `${tenant.id}|${sigData}|${signedAt}`;
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(dataString);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const documentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      let blockchainTx = null;
+      try {
+        const result = await stampAuditOnChain(documentHash, `tenant:${tenant.id}`);
+        blockchainTx = result.transactionHash;
+        console.log("Blockchain stamp successful:", blockchainTx);
+      } catch (err) {
+        console.warn("Blockchain stamp skipped (no wallet or failed):", err);
+      }
+
       // Save verification record
       const { error: verifyErr } = await supabase.from('tenant_verifications').insert({
         tenant_id:          tenant.id,
@@ -121,21 +139,7 @@ export default function TenantVerifyPage() {
         .eq('id', tenant.id);
       if (updateErr) throw updateErr;
 
-      // Write audit log
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('audit_logs').insert({
-        actor_id:    tenant.auth_id ?? tenant.id,
-        actor_name:  tenant.full_name,
-        actor_role:  'Tenant',
-        tenant_id:   tenant.id,
-        table_name:  'tenant_verifications',
-        record_id:   tenant.id,
-        action:      'VERIFY',
-        entry_method: 'manual',
-        new_data:    { verified_by_tenant: true, signed_at: signedAt },
-      });
 
-      void user; // used above implicitly
       router.push('/intake/complete');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Verification failed. Please try again.');

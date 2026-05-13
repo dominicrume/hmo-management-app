@@ -159,21 +159,24 @@ export default function LedgerView({ activeTenant, currentUser, tenants, onRefre
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-slate-300 animate-spin" /></div>
       ) : charges.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl py-16 text-center">
-          <Receipt className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-          <p className="text-sm text-slate-400">No service charges recorded yet.</p>
+        <div className="bg-gradient-to-b from-white to-slate-50/50 border border-slate-200 rounded-2xl py-24 text-center shadow-sm">
+          <div className="w-16 h-16 mx-auto bg-amber/10 rounded-full flex items-center justify-center mb-4">
+            <Receipt className="w-8 h-8 text-amber animate-pulse" />
+          </div>
+          <p className="text-sm font-semibold text-navy">No service charges recorded</p>
+          <p className="text-xs text-slate-400 mt-1">Generate your first ledger entry above.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm ring-1 ring-slate-900/5">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Tenant</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Period</th>
-                <th className="text-right px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Due</th>
-                <th className="text-right px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Paid</th>
-                <th className="text-left px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Method</th>
-                <th className="text-center px-4 py-3 text-xxs font-black text-slate-400 uppercase tracking-wider">Status</th>
+              <tr className="border-b border-slate-200/60 bg-gradient-to-r from-slate-50/80 to-white/80">
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Tenant</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Period</th>
+                <th className="text-right px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Due</th>
+                <th className="text-right px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Paid</th>
+                <th className="text-left px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Method</th>
+                <th className="text-center px-5 py-4 text-xxs font-black text-slate-400 uppercase tracking-widest">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">

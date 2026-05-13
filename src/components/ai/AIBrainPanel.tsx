@@ -151,7 +151,7 @@ export default function AIBrainPanel({ tenant, workerId }: Props) {
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber" />
               <span className="text-xxs font-black text-amber uppercase tracking-wider">
-                This Week's Questions
+                This Week&apos;s Questions
               </span>
             </div>
             <button

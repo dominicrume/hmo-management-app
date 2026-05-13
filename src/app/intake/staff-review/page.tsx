@@ -118,11 +118,40 @@ function StaffReviewInner() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace('/login'); return; }
 
-      // nok_address is not a DB column — omit it from the insert payload
-      const { nok_address: _nok_address, ...formWithoutNokAddress } = form;
+      const { data: dbUser, error: dbUserErr } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_id', user.id)
+        .single();
+
+      if (dbUserErr || !dbUser) throw new Error('Staff profile not found. Please contact admin.');
+
+      const { nok_address, ...restForm } = form;
+
+      const mapBenefitType = (bt: string) => {
+        const l = bt.toLowerCase();
+        if (l.includes('universal') || l === 'uc') return 'UC';
+        if (l.includes('housing') || l === 'hb') return 'HB';
+        if (l.includes('pip')) return 'PIP';
+        if (l.includes('esa')) return 'ESA';
+        if (l.includes('jsa')) return 'JSA';
+        if (l.includes('none') || !bt.trim()) return 'None';
+        return 'Other';
+      };
+
+      const mapBenefitFreq = (bf: string) => {
+        const l = bf.toLowerCase();
+        if (l.includes('month')) return 'Monthly';
+        if (l.includes('fort') || l.includes('2') || l.includes('4')) return '2wk';
+        if (l.includes('week')) return 'Weekly';
+        return 'Weekly';
+      };
+
       const payload = {
-        ...formWithoutNokAddress,
+        ...restForm,
         brand,
+        benefit_type:    mapBenefitType(form.benefit_type),
+        benefit_freq:    mapBenefitFreq(form.benefit_freq),
         benefit_amount:  parseFloat(form.benefit_amount) || 0,
         date_entry_uk:   form.date_entry_uk   || null,
         doctor:          form.doctor          || null,
@@ -135,7 +164,7 @@ function StaffReviewInner() {
         email:           form.email     || null,
         status:          'active' as const,
         confidentiality_signed: false,
-        created_by:      user.id,
+        created_by:      dbUser.id,
       };
 
       const { data: tenant, error: insertErr } = await supabase
@@ -146,18 +175,7 @@ function StaffReviewInner() {
 
       if (insertErr) throw new Error(insertErr.message);
 
-      // Write audit log
-      await supabase.from('audit_logs').insert({
-        actor_id:    user.id,
-        actor_name:  user.email ?? '',
-        actor_role:  'Manager',
-        tenant_id:   tenant.id,
-        table_name:  'tenants',
-        record_id:   tenant.id,
-        action:      'CREATE',
-        entry_method: mode,
-        new_data:    payload,
-      });
+
 
       sessionStorage.setItem('intake_tenant_id', tenant.id);
       router.push('/intake/tenant-verify');
@@ -174,12 +192,10 @@ function StaffReviewInner() {
       alert('Voice input requires Chrome or Edge.');
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.lang = 'en-GB';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       const text = Array.from({ length: event.results.length }, (_: unknown, i: number) => event.results[i][0].transcript).join(' ');
       setTranscript(text);
@@ -405,9 +421,17 @@ function StaffReviewInner() {
             </div>
             <div className="p-5 grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Benefit Type</label>
-                <input type="text" value={form.benefit_type} onChange={set('benefit_type')}
-                  placeholder="e.g. Universal Credit" className={inputClass('benefit_type')} />
+                <label htmlFor="benefit_type_field" className={labelClass}>Benefit Type</label>
+                <select id="benefit_type_field" value={form.benefit_type} onChange={set('benefit_type')} className={inputClass('benefit_type')}>
+                  <option value="">— Select —</option>
+                  <option value="UC">Universal Credit (UC)</option>
+                  <option value="HB">Housing Benefit (HB)</option>
+                  <option value="PIP">PIP</option>
+                  <option value="ESA">ESA</option>
+                  <option value="JSA">JSA</option>
+                  <option value="None">None</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
               <div>
                 <label htmlFor="benefit_freq_field" className={labelClass}>Payment Frequency</label>

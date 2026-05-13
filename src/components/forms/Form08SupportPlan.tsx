@@ -126,7 +126,7 @@ export default function Form08SupportPlan({
       <div className="mb-6 px-4 py-3 bg-navy/5 border border-navy/10 rounded-lg">
         <p className="text-xxs font-black text-navy uppercase tracking-widest mb-1">Council Format</p>
         <p className="text-xxs text-slate-500">
-          This document meets Birmingham City Council's monthly support plan submission format.
+          This document meets Birmingham City Council&apos;s monthly support plan submission format.
           Complete all sections before export.
         </p>
       </div>
