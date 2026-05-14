@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 export async function POST(req: Request) {
@@ -40,16 +40,15 @@ Rules:
 3. Infer the benefit type if they mention "universal credit" (UC) or "housing benefit" (HB).
 `;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Please extract data from this transcript:\n\n${text}` }
       ],
     });
 
-    const responseText = (message.content[0] as any).text.trim();
+    const responseText = response.choices[0].message.content || '';
     
     // Clean up potential markdown code blocks
     const cleaned = responseText.replace(/^```json|^```|```$/g, '').trim();

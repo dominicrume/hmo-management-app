@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createServiceClient } from '@/lib/supabase/server';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,13 +56,12 @@ Based on these session notes, generate exactly 3 targeted follow-up questions fo
 
 Format your response as a JSON object with a single key "questions" containing an array of exactly 3 strings. No preamble, no explanation — just the JSON.`;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 512,
+    const aiResponse = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    const raw = aiResponse.choices[0].message.content || '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [raw] };
 

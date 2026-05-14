@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface VisionOCRResult {
   raw_text: string;
@@ -33,44 +33,26 @@ Return ONLY a JSON object matching this exact schema (use null if a field is mis
   "doctor": "..."
 }`;
 
-  let contentBlock: any;
-
-  if (mimeType === 'application/pdf') {
-    contentBlock = {
-      type: 'document',
-      source: {
-        type: 'base64',
-        media_type: 'application/pdf',
-        data: imageBase64,
-      }
-    };
-  } else {
-    contentBlock = {
-      type: 'image',
-      source: {
-        type: 'base64',
-        media_type: mimeType as any,
-        data: imageBase64,
-      }
-    };
-  }
-
-  const message = await anthropic.messages.create({
-    model: 'claude-3-sonnet-20240229',
-    max_tokens: 1024,
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     temperature: 0,
     messages: [
       {
         role: 'user',
         content: [
-          contentBlock,
-          { type: 'text', text: prompt }
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${imageBase64}`
+            }
+          }
         ]
       }
     ]
   });
 
-  const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
+  const rawText = response.choices[0].message.content || '';
   
   let extracted = {};
   try {

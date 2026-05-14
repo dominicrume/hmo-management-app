@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createServiceClient } from '@/lib/supabase/server';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const SYSTEM_PROMPT = `You are the AI Brain for Matty's Place — an expert HMO housing support assistant for Ash Shahada Housing Association Ltd in Birmingham, UK.
 
@@ -53,16 +53,15 @@ ${charges?.map((c) => `${c.period_start} → ${c.period_end}: £${c.amount_due} 
 ${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ?? 'Not yet'} — tenant confirmed: ${v.verified_by_tenant}`).join('\n') ?? 'No verifications recorded.'}
 `;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+    const aiResponse = await openai.chat.completions.create({
+      model: 'gpt-4o',
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `${context}\n\n---\n\nTask: ${task}` },
       ],
     });
 
-    const response = message.content[0].type === 'text' ? message.content[0].text : '';
+    const response = aiResponse.choices[0].message.content || '';
 
     // Detect risk flags in the response
     const riskKeywords = ['safeguarding', 'risk', 'concern', 'urgent', 'immediate', 'deteriorat', 'arrears', 'eviction'];
@@ -72,7 +71,7 @@ ${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ??
     // We still return the JSON correctly to the frontend.
     console.log('[AI brain] Returning response for task:', task_type);
 
-    return NextResponse.json({ response, risk_detected: isRisk, tokens: message.usage });
+    return NextResponse.json({ response, risk_detected: isRisk, tokens: aiResponse.usage });
   } catch (e: unknown) {
     console.error('[AI brain]', e);
     return NextResponse.json({ error: e instanceof Error ? e.message : 'AI error' }, { status: 500 });
