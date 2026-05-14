@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.voremlabs.mattysplace',
   appName: "Matty's Place",
   webDir: 'out',
-  bundledWebRuntime: false,
+
   server: {
     // During local development, point this to your local dev server:
     // url: 'http://localhost:3000',
