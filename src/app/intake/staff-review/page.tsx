@@ -470,8 +470,8 @@ function StaffReviewInner() {
                 <label htmlFor="benefit_type_field" className={labelClass}>Benefit Type</label>
                 <select id="benefit_type_field" value={form.benefit_type} onChange={set('benefit_type')} className={inputClass('benefit_type')}>
                   <option value="">— Select —</option>
-                  <option value="UC">Universal Credit (UC)</option>
-                  <option value="HB">Housing Benefit (HB)</option>
+                  <option value="Universal Credit">Universal Credit (UC)</option>
+                  <option value="Housing Benefit">Housing Benefit (HB)</option>
                   <option value="PIP">PIP</option>
                   <option value="ESA">ESA</option>
                   <option value="JSA">JSA</option>
