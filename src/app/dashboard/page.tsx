@@ -265,7 +265,6 @@ export default function DashboardPage() {
         onSignOut={handleSignOut}
         userName={currentUser?.full_name ?? ''}
         userRole={currentUser?.role ?? 'Manager'}
-        tenantCount={tenants.length}
         riskCount={tenants.filter((t) => t.status === 'missing').length}
       />
 
