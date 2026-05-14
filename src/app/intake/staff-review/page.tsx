@@ -63,6 +63,7 @@ function StaffReviewInner() {
   const [saveError,  setSaveError]  = useState('');
   const [recording,  setRecording]  = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // Load OCR pre-filled data or brand from sessionStorage
   useEffect(() => {
@@ -209,6 +210,29 @@ function StaffReviewInner() {
     }
   };
 
+  const processVoiceTranscript = async () => {
+    if (!transcript.trim()) return;
+    setIsExtracting(true);
+    try {
+      const res = await fetch('/api/ai/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript })
+      });
+      const data = await res.json();
+      if (data.data) {
+        setForm((prev) => ({ ...prev, ...data.data }));
+        setTranscript(''); // Clear transcript after successful autofill
+        alert("✨ AI successfully filled the form based on the voice transcript!");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to extract data from transcript.");
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const inputClass = (key: keyof FormState) =>
     `w-full bg-navy border rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600
      focus:outline-none focus:ring-2 focus:ring-amber/50 transition-all
@@ -255,17 +279,39 @@ function StaffReviewInner() {
         </div>
       </header>
 
-      {/* Voice transcript strip */}
-      {mode === 'voice' && transcript && (
-        <div className="bg-navy/50 border-b border-navy-border px-6 py-2">
-          <p className="text-xxs text-slate-400">
-            <span className="text-amber font-bold mr-2">Transcript:</span>{transcript}
-          </p>
-        </div>
-      )}
+
 
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-6">
+
+          {/* Premium Voice Transcript Card */}
+          {mode === 'voice' && transcript && (
+            <div className="bg-amber/10 border-2 border-amber/30 rounded-2xl p-5 flex gap-4 items-start shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-amber/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Mic className="w-5 h-5 text-amber-dark" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xs font-black text-amber-dark uppercase tracking-widest mb-1.5">Live Voice Transcript</h3>
+                <p className="text-sm text-navy/80 leading-relaxed italic font-medium mb-4">
+                  &ldquo;{transcript}&rdquo;
+                </p>
+                {!recording && transcript.trim().length > 0 && (
+                  <button
+                    onClick={processVoiceTranscript}
+                    disabled={isExtracting}
+                    className="flex items-center gap-2 px-4 py-2 bg-navy text-white text-xs font-bold rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50"
+                  >
+                    {isExtracting ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-lg leading-none">✨</span>
+                    )}
+                    {isExtracting ? 'Extracting Data...' : 'Autofill Form with AI'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {saveError && (
             <div className="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
