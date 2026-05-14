@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 export interface VisionOCRResult {
   raw_text: string;
@@ -13,6 +13,7 @@ export async function callClaudeVisionOCR(
   imageBase64: string,
   mimeType: string = 'image/jpeg'
 ): Promise<VisionOCRResult> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const prompt = `You are an expert OCR and data extraction system for Matty\'s Place (a UK HMO supported housing service).
 Extract the following fields from the provided document image.
 Return ONLY a JSON object matching this exact schema (use null if a field is missing or unreadable):

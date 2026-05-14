@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createServiceClient } from '@/lib/supabase/server';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 
 const SYSTEM_PROMPT = `You are the AI Brain for Matty's Place — an expert HMO housing support assistant for Ash Shahada Housing Association Ltd in Birmingham, UK.
 
@@ -18,6 +18,7 @@ Format: Use markdown for structure when appropriate. Keep responses under 500 wo
 
 export async function POST(req: NextRequest) {
   try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { tenant_id, worker_id, task, task_type = 'agent_task' } = await req.json();
     if (!task)      return NextResponse.json({ error: 'task required' }, { status: 400 });
     if (!tenant_id) return NextResponse.json({ error: 'tenant_id required' }, { status: 400 });
