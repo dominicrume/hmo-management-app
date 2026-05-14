@@ -10,7 +10,7 @@ const config: HardhatUserConfig = {
     polygonAmoy: {
       url: process.env.POLYGON_RPC_URL || "https://rpc-amoy.polygon.technology/",
       accounts: process.env.POLYGON_WALLET_PRIVATE_KEY ? [process.env.POLYGON_WALLET_PRIVATE_KEY] : [],
-    }
+    } as any
   }
 };
 

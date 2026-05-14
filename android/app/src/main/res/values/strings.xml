@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Matty\'s Place</string>
+    <string name="title_activity_main">Matty\'s Place</string>
+    <string name="package_name">com.voremlabs.mattysplace</string>
+    <string name="custom_url_scheme">com.voremlabs.mattysplace</string>
+</resources>

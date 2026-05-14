@@ -6,7 +6,7 @@
 // immediately if tenant goes missing. Police protocol documentation.
 
 import { useState } from 'react';
-import { TextField, TextareaField, SelectField, FormSection, FormActions } from './FormField';
+import { TextField, TextareaField, SelectField, PhoneField, FormSection, FormActions } from './FormField';
 import { AlertTriangle } from 'lucide-react';
 
 export interface Form04Data {
@@ -156,7 +156,7 @@ export default function Form04MissingPerson({ initialData, ocrData, onSubmit, on
           onChange={set('nok_name')} placeholder="Full name" error={errors.nok_name} />
         <TextField label="Relationship" value={data.nok_relation}
           onChange={set('nok_relation')} placeholder="e.g. Mother, Brother" />
-        <TextField label="Phone Number" type="tel" value={data.nok_phone}
+        <PhoneField label="Phone Number" value={data.nok_phone}
           onChange={set('nok_phone')} placeholder="+44 7000 000000" />
         <TextField label="Address" value={data.nok_address}
           onChange={set('nok_address')} placeholder="Full postal address" />

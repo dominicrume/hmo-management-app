@@ -3,6 +3,8 @@
 // Shared field primitives used by all 8 form components.
 
 import { AlertCircle } from 'lucide-react';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 interface BaseProps {
   label: string;
@@ -44,14 +46,14 @@ export function TextField({
         max={max}
         readOnly={readOnly}
         className={`
-          w-full border-b py-1.5 text-sm bg-transparent transition-colors
-          placeholder-slate-300 focus:outline-none
+          w-full border-2 rounded-md px-3 py-2 text-sm bg-cream transition-colors
+          placeholder-slate-400 focus:outline-none font-semibold
           ${mono ? 'font-mono tracking-widest' : ''}
           ${error
-            ? 'border-red-400 text-red-700 focus:border-red-500'
-            : 'border-field-line text-navy focus:border-navy'
+            ? 'border-red-400 text-red-700 focus:border-red-500 bg-red-50'
+            : 'border-slate-300 text-navy focus:border-navy focus:bg-white'
           }
-          ${readOnly ? 'text-slate-400 cursor-default' : ''}
+          ${readOnly ? 'text-slate-400 cursor-default bg-slate-50' : ''}
         `}
         aria-invalid={!!error}
         aria-describedby={error ? `${label}-err` : undefined}
@@ -84,11 +86,11 @@ export function TextareaField({
         placeholder={placeholder}
         rows={rows}
         className={`
-          w-full border rounded-lg px-3 py-2 text-sm bg-transparent resize-none
-          placeholder-slate-300 focus:outline-none transition-colors
+          w-full border-2 rounded-md px-3 py-2 text-sm bg-cream resize-none font-semibold
+          placeholder-slate-400 focus:outline-none transition-colors
           ${error
-            ? 'border-red-400 text-red-700 focus:border-red-500'
-            : 'border-slate-200 text-navy focus:border-navy'
+            ? 'border-red-400 text-red-700 focus:border-red-500 bg-red-50'
+            : 'border-slate-300 text-navy focus:border-navy focus:bg-white'
           }
         `}
         aria-invalid={!!error}
@@ -119,10 +121,10 @@ export function SelectField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`
-          w-full border-b py-1.5 text-sm bg-transparent focus:outline-none transition-colors
+          w-full border-2 rounded-md px-3 py-2 text-sm bg-cream focus:outline-none transition-colors font-semibold
           ${error
-            ? 'border-red-400 text-red-700'
-            : 'border-field-line text-navy focus:border-navy'
+            ? 'border-red-400 text-red-700 bg-red-50'
+            : 'border-slate-300 text-navy focus:border-navy focus:bg-white'
           }
         `}
         aria-invalid={!!error}
@@ -131,6 +133,40 @@ export function SelectField({
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
       {error && <FieldError msg={error} />}
+      {!error && hint && <p className="text-xxs text-slate-400">{hint}</p>}
+    </div>
+  );
+}
+
+// ── Phone (International) ─────────────────────────────────────────────────────
+
+export interface PhoneFieldProps extends BaseProps {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}
+
+export function PhoneField({
+  label, required, error, hint, className = '', colSpan2,
+  value, onChange, placeholder,
+}: PhoneFieldProps) {
+  return (
+    <div className={`space-y-1 ${colSpan2 ? 'col-span-2' : ''} ${className}`}>
+      <Label text={label} required={required} />
+      <div className={`
+        border-2 rounded-md bg-cream transition-colors focus-within:border-navy focus-within:bg-white
+        ${error ? 'border-red-400 bg-red-50' : 'border-slate-300'}
+      `}>
+        <PhoneInput
+          international
+          defaultCountry="GB"
+          value={value}
+          onChange={(v) => onChange(v || '')}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 text-sm text-navy font-semibold outline-none bg-transparent phone-input-override"
+        />
+      </div>
+      {error && <FieldError id={`${label}-err`} msg={error} />}
       {!error && hint && <p className="text-xxs text-slate-400">{hint}</p>}
     </div>
   );

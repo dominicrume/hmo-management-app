@@ -6,13 +6,13 @@
 // Steps 1–4 of intake pipeline.
 
 import { useState } from 'react';
-import { TextField, TextareaField, SelectField, FormSection, FormActions } from './FormField';
+import { TextField, TextareaField, SelectField, PhoneField, FormSection, FormActions } from './FormField';
 
 // ── Validation helpers ────────────────────────────────────────────────────────
 
 const NINO_RE  = /^[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^(\+44|0)[0-9\s]{9,13}$/;
+const PHONE_RE = /^\+[1-9]\d{6,14}$/; // E.164 format from PhoneInput
 
 function validate(d: Form03Data): Record<string, string> {
   const e: Record<string, string> = {};
@@ -24,7 +24,7 @@ function validate(d: Form03Data): Record<string, string> {
   if (!d.nationality.trim())           e.nationality  = 'Nationality is required.';
   if (!d.address.trim())               e.address      = 'Address is required.';
   if (!d.room_number.trim())           e.room_number  = 'Room number is required.';
-  if (!PHONE_RE.test(d.mobile))        e.mobile       = 'Enter a valid UK mobile number.';
+  if (!d.mobile || !PHONE_RE.test(d.mobile.replace(/\s/g, ''))) e.mobile = 'Enter a valid international mobile number.';
   if (d.email && !EMAIL_RE.test(d.email)) e.email     = 'Enter a valid email address.';
   if (!d.benefit_type)                 e.benefit_type = 'Benefit type is required.';
   if (!d.benefit_freq)                 e.benefit_freq = 'Frequency is required.';
@@ -32,7 +32,7 @@ function validate(d: Form03Data): Record<string, string> {
                                        e.benefit_amount = 'Enter a valid amount.';
   if (!d.nok_name.trim())              e.nok_name     = 'Next of kin name is required.';
   if (!d.nok_relation.trim())          e.nok_relation = 'Relationship is required.';
-  if (!PHONE_RE.test(d.nok_phone))     e.nok_phone    = 'Enter a valid UK phone number.';
+  if (!d.nok_phone || !PHONE_RE.test(d.nok_phone.replace(/\s/g, ''))) e.nok_phone = 'Enter a valid international phone number.';
   if (!d.moved_in)                     e.moved_in     = 'Move-in date is required.';
   return e;
 }
@@ -200,10 +200,9 @@ export default function Form03PersonalDetails({ initialData, ocrData, onSubmit, 
           onChange={set('moved_in') as (v: string) => void}
           error={errors.moved_in}
         />
-        <TextField
+        <PhoneField
           label="Mobile Number"
           required
-          type="tel"
           value={data.mobile}
           onChange={set('mobile') as (v: string) => void}
           placeholder="+44 7000 000000"
@@ -272,10 +271,9 @@ export default function Form03PersonalDetails({ initialData, ocrData, onSubmit, 
           placeholder="e.g. Brother, Mother"
           error={errors.nok_relation}
         />
-        <TextField
+        <PhoneField
           label="Phone Number"
           required
-          type="tel"
           value={data.nok_phone}
           onChange={set('nok_phone') as (v: string) => void}
           placeholder="+44 7000 000000"

@@ -54,7 +54,7 @@ ${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ??
 `;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [

@@ -56,7 +56,7 @@ Return ONLY a JSON object matching this exact schema (use null if a field is mis
   }
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-3-sonnet-20240229',
     max_tokens: 1024,
     temperature: 0,
     messages: [

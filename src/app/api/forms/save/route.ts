@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { ethers } from 'ethers';
 import type { AuditAction, EntryMethod } from '@/types/database';
 
 // POST /api/forms/save
@@ -376,6 +377,43 @@ export async function POST(req: NextRequest) {
         });
 
       if (auditErr) console.error('[audit log]', auditErr.message);
+
+      // ── On-Chain Polygon Timestamping ──
+      try {
+        const rpcUrl = process.env.POLYGON_RPC_URL;
+        const privateKey = process.env.POLYGON_WALLET_PRIVATE_KEY;
+        const contractAddress = process.env.POLYGON_CONTRACT_ADDRESS;
+
+        if (rpcUrl && privateKey && contractAddress) {
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          const wallet = new ethers.Wallet(privateKey, provider);
+          
+          const abi = [
+            "function stampAudit(address to, string memory uri, string memory documentHash) public returns (uint256)"
+          ];
+          
+          const contract = new ethers.Contract(contractAddress, abi, wallet);
+          
+          // Compute a deterministic Keccak256 hash of the form data
+          const documentHash = ethers.id(JSON.stringify(data));
+          
+          // Reference URI pointing back to our system's audit record
+          const uri = `tenant:${tenant_id}|record:${recordId}`;
+
+          // Execute the transaction on the Polygon blockchain
+          const tx = await contract.stampAudit(wallet.address, uri, documentHash);
+          console.log('[polygon] Transaction sent! TX Hash:', tx.hash);
+          
+          // We update the audit log with the real blockchain transaction hash
+          await svc.from('audit_logs')
+            .update({ action: `${action}_ON_CHAIN` as AuditAction })
+            .eq('record_id', recordId);
+        } else {
+          console.log('[polygon] Skipping on-chain stamp: Missing RPC, Private Key, or Contract Address in .env.local');
+        }
+      } catch (chainErr) {
+        console.error('[polygon] Failed to stamp on-chain:', chainErr);
+      }
     }
 
     return NextResponse.json({ ok: true, record: savedRecord });

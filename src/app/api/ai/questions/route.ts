@@ -57,7 +57,7 @@ Based on these session notes, generate exactly 3 targeted follow-up questions fo
 Format your response as a JSON object with a single key "questions" containing an array of exactly 3 strings. No preamble, no explanation — just the JSON.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-sonnet-20240229',
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     });
