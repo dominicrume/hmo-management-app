@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude auth *)",
+      "Read(//Users/user/.claude/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Account:', d.get\\('primaryAccount', {}\\).get\\('emailAddress', 'unknown'\\)\\)\")"
+    ]
+  }
+}

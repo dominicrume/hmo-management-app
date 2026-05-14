@@ -181,7 +181,8 @@ function StaffReviewInner() {
       sessionStorage.setItem('intake_tenant_id', tenant.id);
       router.push('/intake/tenant-verify');
     } catch (e: unknown) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save. Please try again.');
+      const msg = e instanceof Error ? e.message : typeof e === 'object' && e !== null && 'message' in e ? String((e as Record<string, unknown>).message) : JSON.stringify(e);
+      setSaveError(msg || 'Failed to save. Please try again.');
     } finally {
       setSaving(false);
     }
