@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, FileText, BarChart2,
   ClipboardList, Shield, CreditCard, Brain,
-  Settings, ChevronLeft, ChevronRight,
+  Settings, ChevronLeft, ChevronRight, LogOut,
 } from 'lucide-react';
 
 export type SidebarView =
@@ -25,6 +25,8 @@ interface SidebarProps {
   userRole: 'Manager' | 'SupportWorker' | 'Tenant';
   tenantCount?: number;
   riskCount?: number;
+  userName?: string;
+  onSignOut?: () => void;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -39,7 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings',   label: 'Settings',        icon: <Settings        className="w-4 h-4" />, managerOnly: true },
 ];
 
-export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCount }: SidebarProps) {
+export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCount, userName, onSignOut }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const visibleItems = NAV_ITEMS.filter(
@@ -65,9 +67,12 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
           const isActive = activeView === item.id;
           return (
             <button
+              type="button"
               key={item.id}
               onClick={() => onNavigate(item.id)}
               title={collapsed ? item.label : undefined}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
               className={`
                 w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors relative
                 ${isActive
@@ -95,12 +100,24 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-white/10 p-2">
+      {/* Footer — sign out + collapse */}
+      <div className="border-t border-white/10 p-2 flex flex-col gap-1">
+        {onSignOut && !collapsed && (
+          <button
+            type="button"
+            onClick={onSignOut}
+            aria-label="Sign out"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors text-xs"
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            <span>Sign Out</span>
+          </button>
+        )}
         <button
+          type="button"
           onClick={() => setCollapsed((v) => !v)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="w-full flex items-center justify-center py-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
-          title={collapsed ? 'Expand' : 'Collapse'}
         >
           {collapsed
             ? <ChevronRight className="w-4 h-4" />

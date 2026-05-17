@@ -5,12 +5,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { callClaudeVisionOCR } from '@/lib/ocr/claudeVision';
+import { requirePermission } from '@/lib/security/rbac';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'application/pdf'];
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requirePermission('tenant:create');
+    if (!guard.ok) return guard.response;
+
+    const rl = checkRateLimit(`ocr:${guard.ctx.dbUser.id}`, RATE_LIMITS.ocr?.maxRequests ?? 20, RATE_LIMITS.ocr?.windowMs ?? 60_000);
+    if (!rl.allowed) return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429 });
+
     const formData = await req.formData();
     const file     = formData.get('file');
 

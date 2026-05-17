@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createServiceClient } from '@/lib/supabase/server';
-
-
+import { requirePermission } from '@/lib/security/rbac';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requirePermission('ai:use');
+    if (!guard.ok) return guard.response;
+
+    const rl = checkRateLimit(`questions:${guard.ctx.dbUser.id}`, RATE_LIMITS.aiBrain.maxRequests, RATE_LIMITS.aiBrain.windowMs);
+    if (!rl.allowed) return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429 });
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { tenant_id, worker_id } = await req.json();
     if (!tenant_id) return NextResponse.json({ error: 'tenant_id required' }, { status: 400 });

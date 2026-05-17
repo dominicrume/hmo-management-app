@@ -1,8 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { requirePermission } from '@/lib/security/rbac';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const guard = await requirePermission('ai:use');
+    if (!guard.ok) return guard.response;
+
+    const rl = checkRateLimit(`extract:${guard.ctx.dbUser.id}`, RATE_LIMITS.aiBrain.maxRequests, RATE_LIMITS.aiBrain.windowMs);
+    if (!rl.allowed) return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429 });
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
     const { text } = await req.json();
 
@@ -52,10 +60,10 @@ Rules:
     const parsed = JSON.parse(cleaned);
 
     return NextResponse.json({ data: parsed });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI Extraction Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

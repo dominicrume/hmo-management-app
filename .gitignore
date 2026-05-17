@@ -25,3 +25,16 @@ Thumbs.db
 
 # Logs
 npm-debug.log*
+.env*.local
+
+# Debug / one-off scripts (never commit these)
+test-*.js
+test-*.mjs
+check-*.js
+delete-*.js
+list-*.js
+make-*.js
+mark-*.js
+
+# Claude Code
+.claude/settings.local.json

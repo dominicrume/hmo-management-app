@@ -3,7 +3,13 @@
     "allow": [
       "Bash(claude auth *)",
       "Read(//Users/user/.claude/**)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Account:', d.get\\('primaryAccount', {}\\).get\\('emailAddress', 'unknown'\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Account:', d.get\\('primaryAccount', {}\\).get\\('emailAddress', 'unknown'\\)\\)\")",
+      "Bash(npx tsc *)",
+      "mcp__claude_ai_Supabase__list_tables",
+      "Bash(curl -s http://localhost:3000/api/setup -X POST -H \"Content-Type: application/json\")",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/api/sessions?limit=1)",
+      "Bash(curl -s \"http://localhost:3000/api/sessions?limit=1\")"
     ]
   }
 }
