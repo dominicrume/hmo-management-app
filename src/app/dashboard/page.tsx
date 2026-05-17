@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users } from 'lucide-react';
 
-import Sidebar          from '@/components/layout/Sidebar';
+import { Sidebar }      from '@/components/sidebar';
 import LetterheadSwitcher, { type Brand } from '@/components/layout/LetterheadSwitcher';
 import FormsPanel,      { type FormId }   from '@/components/layout/FormsPanel';
 import FormWorkspace    from '@/components/layout/FormWorkspace';
@@ -273,12 +273,12 @@ export default function DashboardPage() {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <Sidebar
-          activeItem={activeNav}
+          activeView={activeNav as import('@/components/sidebar').SidebarView}
           onNavigate={(id) => { handleNavigate(id); setSidebarOpen(false); }}
-          role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
+          userRole={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
           onSignOut={handleSignOut}
           userName={currentUser?.full_name ?? ''}
-          userRole={currentUser?.role ?? 'Manager'}
+          tenantCount={tenants.length}
           riskCount={tenants.filter((t) => t.status === 'missing').length}
         />
       </div>

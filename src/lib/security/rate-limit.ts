@@ -65,4 +65,6 @@ export const RATE_LIMITS = {
   aiBrain: { maxRequests: 10, windowMs: 60 * 1000 },
   // Setup: 3 requests per hour per IP (prevent enumeration)
   setup: { maxRequests: 3, windowMs: 60 * 60 * 1000 },
+  // OCR: 20 uploads per minute per user
+  ocr: { maxRequests: 20, windowMs: 60 * 1000 },
 } as const;
