@@ -32,6 +32,12 @@ export function StatCard({
   return (
     <div
       onClick={onClick}
+      {...(onClick && {
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-label': String(title),
+        onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') onClick(); },
+      })}
       className={`
         bg-[#0F1C2E] border rounded-xl p-4 flex flex-col gap-3
         ${VARIANT_STYLES[variant]}

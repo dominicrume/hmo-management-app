@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users } from 'lucide-react';
 
@@ -151,49 +151,75 @@ export default function DashboardPage() {
 
   // ── Center view renderer ───────────────────────────────────────────────────
 
+  const ViewFallback = () => (
+    <div className="flex-1 flex items-center justify-center">
+      <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+    </div>
+  );
+
   const renderCenter = () => {
     switch (activeNav) {
       case 'dashboard':
         return (
-          <DashboardView
-            tenants={tenants}
-            currentUser={currentUser}
-            onNavigate={handleNavigate}
-            onNewIntake={() => router.push('/intake/new')}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <DashboardView
+              tenants={tenants}
+              currentUser={currentUser}
+              onNavigate={handleNavigate}
+              onNewIntake={() => router.push('/intake/new')}
+            />
+          </Suspense>
         );
       case 'tenants':
         return (
-          <DashboardView
-            tenants={tenants}
-            currentUser={currentUser}
-            onNavigate={handleNavigate}
-            onNewIntake={() => router.push('/intake/new')}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <DashboardView
+              tenants={tenants}
+              currentUser={currentUser}
+              onNavigate={handleNavigate}
+              onNewIntake={() => router.push('/intake/new')}
+            />
+          </Suspense>
         );
       case 'sessions':
         return (
-          <SessionsView
-            activeTenant={activeTenant}
-            currentUser={currentUser}
-            tenants={tenants}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <SessionsView
+              activeTenant={activeTenant}
+              currentUser={currentUser}
+              tenants={tenants}
+            />
+          </Suspense>
         );
       case 'ledger':
         return (
-          <LedgerView
-            activeTenant={activeTenant}
-            currentUser={currentUser}
-            tenants={tenants}
-            onRefresh={loadData}
-          />
+          <Suspense fallback={<ViewFallback />}>
+            <LedgerView
+              activeTenant={activeTenant}
+              currentUser={currentUser}
+              tenants={tenants}
+              onRefresh={loadData}
+            />
+          </Suspense>
         );
       case 'risk':
-        return <RiskView activeTenant={activeTenant} tenants={tenants} />;
+        return (
+          <Suspense fallback={<ViewFallback />}>
+            <RiskView activeTenant={activeTenant} tenants={tenants} />
+          </Suspense>
+        );
       case 'audit':
-        return <AuditView activeTenant={activeTenant} />;
+        return (
+          <Suspense fallback={<ViewFallback />}>
+            <AuditView activeTenant={activeTenant} />
+          </Suspense>
+        );
       case 'print':
-        return <PrintView tenants={tenants} activeTenant={activeTenant} />;
+        return (
+          <Suspense fallback={<ViewFallback />}>
+            <PrintView tenants={tenants} activeTenant={activeTenant} />
+          </Suspense>
+        );
       case 'settings':
         return (
           <main className="flex-1 overflow-y-auto p-8">

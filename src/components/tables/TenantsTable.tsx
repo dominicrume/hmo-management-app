@@ -68,6 +68,9 @@ export function TenantsTable({ tenants, onRowClick, loading }: TenantsTableProps
     );
   }
 
+  const ariaSort = (col: SortKey): React.AriaAttributes['aria-sort'] =>
+    sortKey === col ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+
   return (
     <div className="bg-[#0F1C2E] border border-white/10 rounded-xl overflow-hidden">
       <table className="w-full text-sm">
@@ -77,6 +80,7 @@ export function TenantsTable({ tenants, onRowClick, loading }: TenantsTableProps
               <th
                 key={key}
                 onClick={() => handleSort(key)}
+                aria-sort={ariaSort(key)}
                 className="px-4 py-3 text-left text-white/40 text-xs font-medium uppercase tracking-wider cursor-pointer hover:text-white/70 transition-colors"
               >
                 <span className="flex items-center gap-1">
@@ -104,6 +108,7 @@ export function TenantsTable({ tenants, onRowClick, loading }: TenantsTableProps
             <tr
               key={t.id}
               onClick={() => onRowClick?.(t)}
+              aria-label={`Open ${t.full_name}`}
               className="border-b border-white/5 hover:bg-white/3 cursor-pointer transition-colors group"
             >
               <td className="px-4 py-3 text-white font-medium group-hover:text-amber-400 transition-colors">
@@ -123,7 +128,7 @@ export function TenantsTable({ tenants, onRowClick, loading }: TenantsTableProps
               <td className="px-4 py-3 text-white/50 text-xs">{t.benefit_type}</td>
               <td className="px-4 py-3">
                 {t.ai_risk_flag && (
-                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <AlertTriangle className="w-4 h-4 text-red-400" aria-label="AI risk flag" role="img" />
                 )}
               </td>
             </tr>

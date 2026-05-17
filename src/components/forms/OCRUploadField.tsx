@@ -6,6 +6,7 @@
 // Staff reviews extraction results before confirming — no auto-save.
 
 import { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { Upload, FileImage, X, CheckCircle2, AlertTriangle, Loader2, ScanLine } from 'lucide-react';
 import type { ExtractedFields } from '@/lib/ocr/googleVision';
 
@@ -173,7 +174,7 @@ export default function OCRUploadField({ onExtracted, formNumber = 'Physical For
       {state === 'uploading' && (
         <div className="flex flex-col items-center gap-3 border border-slate-200 rounded-xl p-6">
           {preview && (
-            <img src={preview} alt="Uploading" className="w-24 h-24 object-cover rounded-lg opacity-50" />
+            <Image src={preview} alt="File preview" width={96} height={96} className="w-24 h-24 object-cover rounded-lg opacity-50" unoptimized />
           )}
           <div className="flex items-center gap-2 text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin text-navy" />
