@@ -57,17 +57,25 @@ export function Navbar({
       {/* Right controls */}
       <div className="flex items-center gap-3">
         {/* Notification bell */}
-        <button className="relative p-2 rounded-lg hover:bg-white/10 transition-colors">
+        <button
+          type="button"
+          aria-label={`Notifications${notificationCount > 0 ? ` (${notificationCount} unread)` : ''}`}
+          className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
+        >
           <Bell className="w-4 h-4 text-white/70" />
           {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full" aria-hidden="true" />
           )}
         </button>
 
         {/* User menu */}
         <div className="relative">
           <button
+            type="button"
             onClick={() => setMenuOpen((v) => !v)}
+            aria-label="User menu"
+            aria-expanded={menuOpen ? 'true' : 'false'}
+            aria-haspopup="menu"
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
           >
             <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
@@ -86,23 +94,29 @@ export function Navbar({
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1 w-48 bg-[#0F1C2E] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
               <button
+                type="button"
+                aria-label="Settings"
                 onClick={() => { setMenuOpen(false); onSettings?.(); }}
                 className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
               >
-                <Settings className="w-4 h-4" /> Settings
+                <Settings className="w-4 h-4" aria-hidden="true" /> Settings
               </button>
               <button
+                type="button"
+                aria-label="Profile"
                 onClick={() => { setMenuOpen(false); }}
                 className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors"
               >
-                <User className="w-4 h-4" /> Profile
+                <User className="w-4 h-4" aria-hidden="true" /> Profile
               </button>
-              <div className="border-t border-white/10" />
+              <div className="border-t border-white/10" role="separator" />
               <button
+                type="button"
+                aria-label="Sign out"
                 onClick={() => { setMenuOpen(false); onLogout?.(); }}
                 className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
               >
-                <LogOut className="w-4 h-4" /> Sign Out
+                <LogOut className="w-4 h-4" aria-hidden="true" /> Sign Out
               </button>
             </div>
           )}

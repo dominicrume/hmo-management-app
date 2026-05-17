@@ -47,7 +47,7 @@ export function TenantModal({ tenant, open, onClose, onOpenForms }: TenantModalP
               <AlertTriangle className="w-3 h-3" /> Risk Flag
             </span>
           )}
-          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors ml-2">
+          <button type="button" aria-label="Close" onClick={onClose} className="text-white/30 hover:text-white transition-colors ml-2">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -69,11 +69,13 @@ export function TenantModal({ tenant, open, onClose, onOpenForms }: TenantModalP
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
+          <button type="button" aria-label="Close modal" onClick={onClose} className="px-4 py-2 text-sm text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
             Close
           </button>
           {onOpenForms && (
             <button
+              type="button"
+              aria-label={`Open forms for ${tenant.full_name}`}
               onClick={() => { onClose(); onOpenForms(tenant.id); }}
               className="px-4 py-2 text-sm text-white font-medium bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors"
             >

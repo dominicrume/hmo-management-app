@@ -265,9 +265,8 @@ export default function TenantVerifyPage() {
                 ref={canvasRef}
                 width={560}
                 height={160}
-                className={`w-full border-2 rounded-xl touch-none cursor-crosshair
+                className={`w-full border-2 rounded-xl touch-none cursor-crosshair bg-[#fafaf9]
                   ${hasSig ? 'border-navy' : 'border-dashed border-slate-300'}`}
-                style={{ background: '#fafaf9' }}
                 onMouseDown={startDraw}
                 onMouseMove={draw}
                 onMouseUp={endDraw}

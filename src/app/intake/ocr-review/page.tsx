@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertTriangle, CheckCircle2, ChevronRight, ArrowLeft, ScanLine } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface ExtractedFields {
   full_name?:   string;
@@ -121,7 +122,7 @@ export default function OCRReviewPage() {
         {imageUrl && (
           <aside className="w-56 flex-shrink-0 border-r border-navy-border bg-navy-light overflow-y-auto p-3">
             <p className="text-xxs text-slate-500 uppercase font-semibold tracking-wider mb-2">Uploaded Form</p>
-            <img src={imageUrl} alt="Uploaded form" className="w-full rounded-lg border border-navy-border" />
+            <Image src={imageUrl} alt="Uploaded form" width={224} height={316} className="w-full rounded-lg border border-navy-border" unoptimized />
           </aside>
         )}
 

@@ -32,6 +32,10 @@ export function TenantCard({
   return (
     <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label={`View tenant ${fullName}, room ${roomNumber}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
       className="bg-[#0F1C2E] border border-white/10 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-amber-500/40 transition-colors group"
     >
       {/* Avatar */}

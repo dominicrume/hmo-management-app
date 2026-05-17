@@ -33,10 +33,12 @@ export function ConfirmModal({
       {/* Modal */}
       <div className="relative bg-[#0F1C2E] border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
         <button
+          type="button"
+          aria-label="Cancel"
           onClick={onCancel}
           className="absolute top-4 right-4 text-white/30 hover:text-white transition-colors"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
 
         <div className="flex items-start gap-3 mb-4">
@@ -49,12 +51,16 @@ export function ConfirmModal({
 
         <div className="flex gap-2 justify-end">
           <button
+            type="button"
+            aria-label={cancelLabel}
             onClick={onCancel}
             className="px-4 py-2 text-sm text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
           >
             {cancelLabel}
           </button>
           <button
+            type="button"
+            aria-label={confirmLabel}
             onClick={onConfirm}
             className={`px-4 py-2 text-sm text-white font-medium rounded-lg transition-colors ${VARIANT[variant]}`}
           >
