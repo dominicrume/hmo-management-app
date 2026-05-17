@@ -4,6 +4,11 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 // GET /api/charges?tenant_id=
 export async function GET(req: NextRequest) {
   try {
+    // Auth guard — prevent unauthenticated access
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get('tenant_id');
 
@@ -37,7 +42,7 @@ export async function PATCH(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
     const { data: dbUser } = await supabase.from('users').select('id, full_name, role').eq('auth_id', user.id).single();
 
-    const { data: charge, error } = await supabase
+    const { data: charge, error } = await svc
       .from('service_charges')
       .update({ is_paid, paid_at: is_paid ? new Date().toISOString() : null })
       .eq('id', id)

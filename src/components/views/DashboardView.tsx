@@ -84,7 +84,7 @@ export default function DashboardView({ tenants, currentUser, onNavigate, onNewI
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <KPICard
           icon={<Users className="w-4 h-4" />}
           label="Active Tenants"

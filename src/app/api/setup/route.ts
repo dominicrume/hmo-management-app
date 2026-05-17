@@ -25,6 +25,20 @@ export async function POST() {
       return NextResponse.json({ ok: true, user: existing, created: false });
     }
 
+    // Security: only auto-create a Manager if no Manager users exist yet.
+    // After the first Manager is created, new users must be added manually.
+    const { count: managerCount } = await svc
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'Manager');
+
+    if ((managerCount ?? 0) > 0) {
+      return NextResponse.json(
+        { error: 'A manager account already exists. Contact your administrator to create your account.' },
+        { status: 403 },
+      );
+    }
+
     // Create the Manager row using service role (bypasses RLS)
     const { data: created, error } = await svc
       .from('users')

@@ -31,7 +31,7 @@ export default function TenantVerifyPage() {
 
     const supabase = createBrowserClient();
     supabase.from('tenants').select('*').eq('id', tenantId).single()
-      .then(({ data, error: e }) => {
+      .then(({ data, error: e }: { data: DbTenant | null; error: { message: string } | null }) => {
         if (e || !data) { setError('Could not load tenant record.'); }
         else            { setTenant(data as DbTenant); }
         setLoading(false);

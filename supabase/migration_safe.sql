@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   nok_name              TEXT NOT NULL,
   nok_relation          TEXT NOT NULL,
   nok_phone             TEXT NOT NULL,
+  nok_address           TEXT,
   doctor                TEXT,
   place_of_birth        TEXT,
   marital_status        marital_status,

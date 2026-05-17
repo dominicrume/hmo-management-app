@@ -130,7 +130,7 @@ export default function OCRReviewPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full gap-3">
               <Loader2 className="w-8 h-8 text-amber animate-spin" />
-              <p className="text-slate-400 text-sm">Extracting fields with Google Vision…</p>
+              <p className="text-slate-400 text-sm">Extracting fields with AI Vision…</p>
             </div>
           ) : error ? (
             <div className="max-w-md mx-auto mt-10 flex items-start gap-3 bg-red-900/20 border border-red-700/30 rounded-xl p-4">

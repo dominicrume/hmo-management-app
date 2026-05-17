@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // GET /api/audit?tenant_id=&limit=
 export async function GET(req: NextRequest) {
   try {
+    // Auth guard — only authenticated staff can read audit logs
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get('tenant_id');
     const limit    = parseInt(searchParams.get('limit') ?? '100');

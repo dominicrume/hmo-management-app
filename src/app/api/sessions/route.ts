@@ -4,6 +4,11 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 // GET /api/sessions?tenant_id=&limit=
 export async function GET(req: NextRequest) {
   try {
+    // Auth guard — prevent unauthenticated access
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get('tenant_id');
     const limit    = parseInt(searchParams.get('limit') ?? '50');
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
     const { data: dbUser } = await supabase.from('users').select('id, full_name, role').eq('auth_id', user.id).single();
     if (!dbUser) return NextResponse.json({ error: 'Staff profile not found' }, { status: 403 });
 
-    const { data: session, error } = await supabase
+    const { data: session, error } = await svc
       .from('sessions')
       .insert({
         tenant_id,

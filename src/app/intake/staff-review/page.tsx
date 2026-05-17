@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import {
@@ -188,27 +188,39 @@ function StaffReviewInner() {
     }
   };
 
-  // Basic Web Speech API support for voice mode
+  // Web Speech API — store instance in ref to avoid leak
+  const recognitionRef = useRef<ReturnType<typeof Object> | null>(null);
+
   const toggleRecording = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       alert('Voice input requires Chrome or Edge.');
       return;
     }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+
+    if (recording && recognitionRef.current) {
+      (recognitionRef.current as { stop: () => void }).stop();
+      setRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    const recognition = new (SpeechRecognition as new () => {
+      continuous: boolean; lang: string;
+      onresult: (event: { results: { length: number; [key: number]: [{ transcript: string }] } }) => void;
+      onerror: () => void; onend: () => void;
+      start: () => void; stop: () => void;
+    })();
     recognition.continuous = true;
     recognition.lang = 'en-GB';
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const text = Array.from({ length: event.results.length }, (_: unknown, i: number) => event.results[i][0].transcript).join(' ');
       setTranscript(text);
     };
-    if (recording) {
-      recognition.stop();
-      setRecording(false);
-    } else {
-      recognition.start();
-      setRecording(true);
-    }
+    recognition.onerror = () => setRecording(false);
+    recognition.onend = () => setRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setRecording(true);
   };
 
   const processVoiceTranscript = async () => {
@@ -327,7 +339,7 @@ function StaffReviewInner() {
               <User className="w-4 h-4 text-navy" />
               <h2 className="text-xs font-bold text-navy">Personal Details</h2>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-4">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="title" className={labelClass}>Title</label>
                 <select id="title" value={form.title} onChange={set('title')} className={inputClass('title')}>
@@ -386,7 +398,7 @@ function StaffReviewInner() {
               <Home className="w-4 h-4 text-navy" />
               <h2 className="text-xs font-bold text-navy">Contact &amp; Accommodation</h2>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-4">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Room Number *</label>
                 <input type="text" value={form.room_number} onChange={set('room_number')}
@@ -434,7 +446,7 @@ function StaffReviewInner() {
               <Phone className="w-4 h-4 text-navy" />
               <h2 className="text-xs font-bold text-navy">Next of Kin</h2>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-4">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Name *</label>
                 <input type="text" value={form.nok_name} onChange={set('nok_name')}
@@ -466,7 +478,7 @@ function StaffReviewInner() {
               <Mail className="w-4 h-4 text-navy" />
               <h2 className="text-xs font-bold text-navy">Benefits &amp; Employment</h2>
             </div>
-            <div className="p-5 grid grid-cols-2 gap-4">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="benefit_type_field" className={labelClass}>Benefit Type</label>
                 <select id="benefit_type_field" value={form.benefit_type} onChange={set('benefit_type')} className={inputClass('benefit_type')}>

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createServiceClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/security/rbac';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
 
 
 
@@ -18,6 +20,23 @@ Format: Use markdown for structure when appropriate. Keep responses under 500 wo
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth + RBAC check
+    const guard = await requirePermission('ai:use');
+    if (!guard.ok) return guard.response;
+
+    // Rate limit per user — 10 requests per minute (protects OpenAI costs)
+    const rl = checkRateLimit(
+      `ai:${guard.ctx.dbUser.id}`,
+      RATE_LIMITS.aiBrain.maxRequests,
+      RATE_LIMITS.aiBrain.windowMs
+    );
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'AI rate limit exceeded. Please wait a moment before trying again.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } }
+      );
+    }
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { tenant_id, worker_id, task, task_type = 'agent_task' } = await req.json();
     if (!task)      return NextResponse.json({ error: 'task required' }, { status: 400 });

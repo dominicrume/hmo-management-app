@@ -1,37 +1,99 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Suspense } from 'react';
 
 type AuthError = { message: string };
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPwd,  setShowPwd]  = useState(false);
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [locked,   setLocked]   = useState(false);
+
+  // Show error from redirect (e.g. account_deactivated)
+  useEffect(() => {
+    const err = searchParams.get('error');
+    if (err === 'account_deactivated') {
+      setError('Your account has been deactivated. Contact your administrator.');
+    } else if (err === 'auth_callback_failed') {
+      setError('Authentication failed. Please try again.');
+    }
+  }, [searchParams]);
+
+  // Client-side lockout after 5 failed attempts
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (locked) {
+      setError('Too many failed attempts. Please wait 15 minutes.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    const supabase = createBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (authError) {
-      setError((authError as AuthError).message);
+    // Basic input validation
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required.');
       setLoading(false);
       return;
     }
 
-    router.push('/dashboard');
+    const supabase = createBrowserClient();
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (authError) {
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        setLocked(true);
+        setError(`Account locked. Too many failed attempts (${MAX_ATTEMPTS}). Please wait 15 minutes.`);
+        setTimeout(() => { setLocked(false); setAttempts(0); }, LOCKOUT_MS);
+      } else {
+        // Generic error message — don't reveal whether email exists
+        setError('Invalid email or password.');
+      }
+
+      setLoading(false);
+      return;
+    }
+
+    // Successful login — reset attempts
+    setAttempts(0);
+
+    // Audit the login server-side
+    if (data.user) {
+      try {
+        await fetch('/api/auth/audit-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ method: 'password' }),
+        });
+      } catch {
+        // Don't block login on audit failure
+      }
+    }
+
+    // Redirect to intended destination or dashboard
+    const next = searchParams.get('next') ?? '/dashboard';
+    router.push(next);
     router.refresh();
   };
 
@@ -49,55 +111,63 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-navy-light border border-navy-border rounded-2xl p-6 shadow-2xl">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" noValidate>
             {/* Error */}
             {error && (
               <div className="flex items-start gap-2 px-3 py-2.5 bg-red-900/30 border border-red-700/40 rounded-lg">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                {locked ? (
+                  <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                )}
                 <p className="text-xs text-red-300">{error}</p>
               </div>
             )}
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">
+              <label htmlFor="login-email" className="text-xxs font-black text-slate-400 uppercase tracking-wider">
                 Email Address
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
                   placeholder="you@example.com"
+                  disabled={locked}
                   className="w-full bg-navy border border-navy-border rounded-lg pl-9 pr-4 py-2.5
                              text-white text-sm placeholder-slate-600
                              focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber/50
-                             transition-all"
+                             transition-all disabled:opacity-50"
                 />
               </div>
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">
+              <label htmlFor="login-password" className="text-xxs font-black text-slate-400 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                 <input
+                  id="login-password"
                   type={showPwd ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  disabled={locked}
                   className="w-full bg-navy border border-navy-border rounded-lg pl-9 pr-10 py-2.5
                              text-white text-sm placeholder-slate-600
                              focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber/50
-                             transition-all"
+                             transition-all disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -117,14 +187,21 @@ export default function LoginPage() {
               </a>
             </div>
 
+            {/* Attempt counter */}
+            {attempts > 0 && !locked && (
+              <p className="text-xxs text-slate-500 text-center">
+                {MAX_ATTEMPTS - attempts} attempt{MAX_ATTEMPTS - attempts !== 1 ? 's' : ''} remaining
+              </p>
+            )}
+
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || locked}
               className="w-full bg-amber text-navy font-black text-sm py-2.5 rounded-lg
                          hover:bg-amber-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {locked ? 'Account Locked' : loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
         </div>
@@ -134,5 +211,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginInner />
+    </Suspense>
   );
 }

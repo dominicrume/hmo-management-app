@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X } from 'lucide-react';
+import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users } from 'lucide-react';
 
 import Sidebar          from '@/components/layout/Sidebar';
 import LetterheadSwitcher, { type Brand } from '@/components/layout/LetterheadSwitcher';
@@ -41,6 +41,8 @@ export default function DashboardPage() {
   const [unpaidTotal,    setUnpaidTotal]    = useState(0);
   const [notifOpen,      setNotifOpen]      = useState(false);
   const [unpaidItems,    setUnpaidItems]    = useState<{ id: string; amount_due: number; amount_paid: number; tenant_id: string }[]>([]);
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [tenantPanelOpen, setTenantPanelOpen] = useState(false);
 
   const supabase = createBrowserClient();
 
@@ -98,7 +100,7 @@ export default function DashboardPage() {
 
       if (charges) {
         setUnpaidCount(charges.length);
-        setUnpaidTotal(charges.reduce((s, c) => s + (c.amount_due - c.amount_paid), 0));
+        setUnpaidTotal(charges.reduce((s: number, c: { amount_due: number; amount_paid: number }) => s + (c.amount_due - c.amount_paid), 0));
         setUnpaidItems(charges);
       }
     } catch (e: unknown) {
@@ -257,16 +259,29 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
-      {/* ── Sidebar — only shown in full-width views (dashboard, sessions, etc.) ── */}
-      <Sidebar
-        activeItem={activeNav}
-        onNavigate={handleNavigate}
-        role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
-        onSignOut={handleSignOut}
-        userName={currentUser?.full_name ?? ''}
-        userRole={currentUser?.role ?? 'Manager'}
-        riskCount={tenants.filter((t) => t.status === 'missing').length}
-      />
+      {/* ── Mobile sidebar overlay ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar — collapsible on mobile ── */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:relative lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <Sidebar
+          activeItem={activeNav}
+          onNavigate={(id) => { handleNavigate(id); setSidebarOpen(false); }}
+          role={currentUser?.role === 'SupportWorker' ? 'SupportWorker' : 'Manager'}
+          onSignOut={handleSignOut}
+          userName={currentUser?.full_name ?? ''}
+          userRole={currentUser?.role ?? 'Manager'}
+          riskCount={tenants.filter((t) => t.status === 'missing').length}
+        />
+      </div>
 
       <div className="flex flex-col flex-1 overflow-hidden">
 
@@ -285,11 +300,30 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Top header — V2.4.0 style ─────────────────────────────────── */}
-        <header className="no-print h-12 bg-white border-b border-slate-200 flex items-center px-4 gap-3 z-10 flex-shrink-0">
+        <header className="no-print h-12 bg-white border-b border-slate-200 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-10 flex-shrink-0">
 
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0"
+            aria-label="Open menu"
+          >
+            <Menu className="w-4 h-4 text-slate-600" />
+          </button>
+
+          {/* Mobile tenant panel toggle */}
+          <button
+            type="button"
+            onClick={() => setTenantPanelOpen((v) => !v)}
+            className="lg:hidden w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0"
+            aria-label="Toggle tenant list"
+          >
+            <Users className="w-4 h-4 text-slate-600" />
+          </button>
 
           {/* Global search */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
@@ -383,7 +417,12 @@ export default function DashboardPage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* ── Tenant list — always visible ─────────────────────────────────── */}
-          <aside className="no-print w-60 min-w-[240px] bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+          <aside className={`
+            no-print bg-white border-r border-slate-200 flex flex-col overflow-hidden
+            fixed inset-y-0 left-0 z-30 w-72 transition-transform duration-300
+            lg:relative lg:translate-x-0 lg:w-60 lg:min-w-[240px]
+            ${tenantPanelOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}>
             <div className="px-4 py-3 border-b border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-bold text-navy">Tenants</h2>
@@ -533,6 +572,14 @@ export default function DashboardPage() {
               </div>
             </div>
           </aside>
+
+          {/* Mobile tenant panel overlay */}
+          {tenantPanelOpen && (
+            <div
+              className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+              onClick={() => setTenantPanelOpen(false)}
+            />
+          )}
 
           {/* ── Main content area — switches by activeNav ──────────────────── */}
           {renderCenter()}

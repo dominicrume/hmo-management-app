@@ -43,7 +43,29 @@ export async function POST(req: NextRequest) {
     if (form_id === 'personal') {
       tableName = 'tenants';
 
-      const { data: updated, error } = await supabase
+      // Normalise benefit_type to match DB enum ('UC', 'HB', 'PIP', etc.)
+      const mapBenefitType = (bt: string): string => {
+        if (!bt) return 'None';
+        const l = bt.toLowerCase();
+        if (l.includes('universal') || l === 'uc') return 'UC';
+        if (l.includes('housing') || l === 'hb') return 'HB';
+        if (l.includes('pip')) return 'PIP';
+        if (l.includes('esa')) return 'ESA';
+        if (l.includes('jsa')) return 'JSA';
+        if (l.includes('none')) return 'None';
+        return 'Other';
+      };
+
+      // Normalise benefit_freq to match DB enum ('Monthly', '2wk', 'Weekly')
+      const mapBenefitFreq = (bf: string): string => {
+        if (!bf) return 'Weekly';
+        const l = bf.toLowerCase();
+        if (l.includes('month')) return 'Monthly';
+        if (l.includes('fort') || l.includes('2') || l.includes('4')) return '2wk';
+        return 'Weekly';
+      };
+
+      const { data: updated, error } = await svc
         .from('tenants')
         .update({
           title:             data.title             || undefined,
@@ -59,8 +81,8 @@ export async function POST(req: NextRequest) {
           address:           data.address           || undefined,
           room_number:       data.room_number       || undefined,
           moved_in:          data.moved_in          || undefined,
-          benefit_type:      data.benefit_type      || undefined,
-          benefit_freq:      data.benefit_freq      || undefined,
+          benefit_type:      data.benefit_type      ? mapBenefitType(data.benefit_type) : undefined,
+          benefit_freq:      data.benefit_freq      ? mapBenefitFreq(data.benefit_freq) : undefined,
           benefit_amount:    data.benefit_amount    ? parseFloat(data.benefit_amount) : undefined,
           nok_name:          data.nok_name          || undefined,
           nok_relation:      data.nok_relation      || undefined,
@@ -91,7 +113,7 @@ export async function POST(req: NextRequest) {
         data.distinguishing_features ? `Distinguishing: ${data.distinguishing_features}` : '',
       ].filter(Boolean).join(' · ');
 
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await svc
         .from('tenants')
         .update({
           physical_description:  physParts                    || null,
@@ -111,7 +133,7 @@ export async function POST(req: NextRequest) {
     } else if (form_id === 'privacy') {
       // Form 5 — Confidentiality Waiver: mark tenant as signed
       tableName = 'tenants';
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await svc
         .from('tenants')
         .update({
           confidentiality_signed:    true,
@@ -133,7 +155,7 @@ export async function POST(req: NextRequest) {
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const periodEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      const { data: charge, error } = await supabase
+      const { data: charge, error } = await svc
         .from('service_charges')
         .insert({
           tenant_id,
@@ -177,7 +199,7 @@ export async function POST(req: NextRequest) {
         data.plan_review_date  ? `Review Date: ${data.plan_review_date}`      : '',
       ].filter(Boolean).join('\n\n');
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await svc
         .from('sessions')
         .insert({
           tenant_id,
@@ -221,7 +243,7 @@ export async function POST(req: NextRequest) {
         data.review_date            ? `Review Date: ${data.review_date}`                : '',
       ].filter(Boolean).join('\n\n');
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await svc
         .from('sessions')
         .insert({
           tenant_id,

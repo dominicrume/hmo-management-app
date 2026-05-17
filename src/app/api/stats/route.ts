@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
+    // Auth guard — prevent unauthenticated access
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+
     const svc = createServiceClient();
 
     const [
