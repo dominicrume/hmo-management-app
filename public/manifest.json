@@ -1,0 +1,40 @@
+{
+  "name": "Matty's Place — HMO Management",
+  "short_name": "Matty's Place",
+  "description": "Ash Shahada Housing Association — HMO Tenant Management System",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F1C2E",
+  "theme_color": "#E8A84C",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View HMO dashboard",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Add Tenant",
+      "short_name": "New Tenant",
+      "description": "Start tenant intake",
+      "url": "/intake/new"
+    }
+  ]
+}
