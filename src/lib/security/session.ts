@@ -1,5 +1,7 @@
-// Session security utilities
-// Handles session freshness validation, login auditing, and session invalidation.
+// Session security utilities — server-only (uses next/headers via supabase/server).
+// For client-safe password utilities, use @/lib/security/password instead.
+export { checkPasswordStrength } from './password';
+export type { PasswordStrength } from './password';
 
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
@@ -105,33 +107,3 @@ export async function forceSignOut(): Promise<void> {
   await supabase.auth.signOut({ scope: 'global' });
 }
 
-/**
- * Password strength checker — enforce policy before sending to Supabase.
- * Supabase Auth hashes passwords with bcrypt, but we enforce complexity.
- */
-export interface PasswordStrength {
-  valid: boolean;
-  score: number; // 0-4
-  errors: string[];
-}
-
-export function checkPasswordStrength(password: string): PasswordStrength {
-  const errors: string[] = [];
-  let score = 0;
-
-  if (password.length >= 8)  score++; else errors.push('At least 8 characters');
-  if (password.length >= 12) score++;
-  if (/[A-Z]/.test(password)) score++; else errors.push('At least one uppercase letter');
-  if (/[a-z]/.test(password)) score++; else errors.push('At least one lowercase letter');
-  if (/[0-9]/.test(password)) score++; else errors.push('At least one number');
-  if (/[^A-Za-z0-9]/.test(password)) score++; else errors.push('At least one special character');
-
-  // Normalize score to 0-4
-  const normalised = Math.min(4, Math.floor(score * (4 / 6)));
-
-  return {
-    valid: errors.length === 0 && password.length >= 8,
-    score: normalised,
-    errors,
-  };
-}
