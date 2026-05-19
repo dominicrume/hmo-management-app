@@ -57,12 +57,22 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
   return (
     <aside
       className={`
-        flex flex-col bg-[#0F1C2E] border-r border-white/10 transition-all duration-200 shrink-0
+        flex flex-col bg-[#0A1628] border-r border-white/8 transition-all duration-200 shrink-0
         ${collapsed ? 'w-14' : 'w-56'}
       `}
     >
+      {/* Brand header */}
+      {!collapsed && (
+        <div className="px-4 py-4 border-b border-white/8">
+          <p className="text-white font-black text-sm tracking-tight">Matty&apos;s Place</p>
+          {userName && (
+            <p className="text-slate-500 text-[10px] mt-0.5 truncate">{userName}</p>
+          )}
+        </div>
+      )}
+
       {/* Nav items */}
-      <nav className="flex-1 py-4 overflow-y-auto">
+      <nav className="flex-1 py-3 overflow-y-auto space-y-0.5 px-2">
         {visibleItems.map((item) => {
           const isActive = activeView === item.id;
           return (
@@ -74,21 +84,28 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={`
-                w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors relative
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 relative
                 ${isActive
-                  ? 'bg-amber-500/15 text-amber-400 border-r-2 border-amber-500'
-                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                  ? 'bg-amber-500 text-[#0A1628] font-bold shadow-lg shadow-amber-500/20'
+                  : 'text-slate-300 hover:text-white hover:bg-white/8 font-medium'
                 }
               `}
             >
-              <span className="shrink-0">{item.icon}</span>
+              <span className={`shrink-0 ${isActive ? 'text-[#0A1628]' : 'text-slate-400'}`}>
+                {item.icon}
+              </span>
               {!collapsed && (
                 <>
-                  <span className="flex-1 text-left truncate font-[Sora,sans-serif]">{item.label}</span>
+                  <span className="flex-1 text-left truncate">{item.label}</span>
                   {(item.badge ?? 0) > 0 && (
                     <span className={`
                       text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center
-                      ${item.id === 'risk' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/60'}
+                      ${isActive
+                        ? 'bg-[#0A1628]/30 text-[#0A1628]'
+                        : item.id === 'risk'
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-white/10 text-white/70'
+                      }
                     `}>
                       {item.badge}
                     </span>
@@ -101,23 +118,27 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
       </nav>
 
       {/* Footer — sign out + collapse */}
-      <div className="border-t border-white/10 p-2 flex flex-col gap-1">
-        {onSignOut && !collapsed && (
+      <div className="border-t border-white/8 p-2 flex flex-col gap-1">
+        {onSignOut && (
           <button
             type="button"
             onClick={onSignOut}
             aria-label="Sign out"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors text-xs"
+            className={`
+              w-full flex items-center gap-2 px-3 py-2.5 rounded-lg
+              text-red-400 hover:text-white hover:bg-red-500/20 transition-all text-xs font-medium
+              ${collapsed ? 'justify-center' : ''}
+            `}
           >
-            <LogOut className="w-4 h-4 shrink-0" />
-            <span>Sign Out</span>
+            <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
+            {!collapsed && <span>Sign Out</span>}
           </button>
         )}
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="w-full flex items-center justify-center py-2 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+          className="w-full flex items-center justify-center py-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-all"
         >
           {collapsed
             ? <ChevronRight className="w-4 h-4" />
