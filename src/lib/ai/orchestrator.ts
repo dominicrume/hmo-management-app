@@ -14,6 +14,7 @@ import { BRAIN_SYSTEM_PROMPT } from './prompts';
 import { createServiceClient } from '@/lib/supabase/server';
 import { writeAuditLog }       from '@/lib/dal/auditLogs';
 import { log }                 from '@/lib/observability/logger';
+import { checkInputGuardrails, checkOutputGuardrails, AI_DISCLAIMER, classifyAIRisk, requiresHumanApproval } from '@/lib/compliance';
 
 const CLAUDE_BRAIN_MODEL   = 'claude-sonnet-4-6';
 const MAX_TOOL_ROUNDS      = 5; // prevent infinite loops
@@ -37,12 +38,38 @@ export interface OrchestratorResult {
   tokensUsed:    number;
   model:         string;
   latencyMs:     number;
+  guardrails:    { input: ReturnType<typeof checkInputGuardrails>; output: ReturnType<typeof checkOutputGuardrails> };
+  aiRiskClass:   string;
+  requiresApproval: boolean;
+  approvalId?:   string;
 }
 
 export async function runAITask(params: OrchestratorParams): Promise<OrchestratorResult> {
   const started    = Date.now();
   const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const sessionKey = params.sessionKey ?? `${new Date().toISOString().split('T')[0]}-brain`;
+
+  // ── 0. Input guardrails (EU AI Act Art. 9) ───────────────────────────────
+  const taskType      = params.taskType ?? 'brain';
+  const inputGuard    = checkInputGuardrails(params.task);
+  const aiRiskProfile = classifyAIRisk(taskType);
+
+  if (!inputGuard.allowed) {
+    const latencyMs = Date.now() - started;
+    const blocked   = `Request blocked by AI guardrails: ${inputGuard.flags.join('; ')}`;
+    return {
+      response:         blocked,
+      riskDetected:     false,
+      toolCalls:        [],
+      verification:     { passed: false, warnings: inputGuard.flags, piiFlags: [], grounded: false },
+      tokensUsed:       0,
+      model:            CLAUDE_BRAIN_MODEL,
+      latencyMs,
+      guardrails:       { input: inputGuard, output: checkOutputGuardrails('', taskType, false) },
+      aiRiskClass:      aiRiskProfile.classification,
+      requiresApproval: false,
+    };
+  }
 
   // ── 1. Build tenant context ───────────────────────────────────────────────
   const ctx          = await buildTenantContext(params.tenantId);
@@ -137,27 +164,50 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
     });
   }
 
-  // ── 7. Risk detection ─────────────────────────────────────────────────────
+  // ── 6b. Output guardrails (EU AI Act Art. 9) ─────────────────────────────
   const RISK_KEYWORDS = ['safeguarding', 'risk', 'urgent', 'immediate', 'deteriorat', 'arrears', 'eviction', 'concern'];
   const riskDetected  = RISK_KEYWORDS.some((kw) => finalResponse.toLowerCase().includes(kw))
     || allToolCalls.some((tc) => tc.tool === 'flag_risk');
-  const riskSummary   = riskDetected
+  const outputGuard   = checkOutputGuardrails(finalResponse, taskType, riskDetected);
+
+  // Append AI disclaimer if required (high-risk task type or risk detected)
+  if (outputGuard.requiresDisclaimer) finalResponse += AI_DISCLAIMER;
+
+  const riskSummary = riskDetected
     ? allToolCalls.find((tc) => tc.tool === 'flag_risk')?.input?.risk_summary as string | undefined
     : undefined;
 
   const latencyMs = Date.now() - started;
 
+  // ── 7. Human approval gate (EU AI Act Art. 14) ───────────────────────────
+  const needsApproval = requiresHumanApproval(taskType, riskSummary ? 'high' : undefined);
+  let   approvalId: string | undefined;
+
+  if (needsApproval && riskDetected) {
+    try {
+      const svc = createServiceClient();
+      const { data: approval } = await svc.from('ai_approvals').insert({
+        tenant_id:     params.tenantId,
+        risk_summary:  riskSummary ?? 'AI detected risk — review required',
+        risk_severity: 'high',
+        ai_model:      CLAUDE_BRAIN_MODEL,
+        ai_confidence: outputGuard.confidence,
+      }).select('id').single();
+      approvalId = approval?.id;
+    } catch { /* non-fatal */ }
+  }
+
   // ── 8. Store conversation memory ──────────────────────────────────────────
   await storeMemoryTurn({ tenantId: params.tenantId, workerId: params.workerId, sessionKey, role: 'user',      content: params.task });
   await storeMemoryTurn({ tenantId: params.tenantId, workerId: params.workerId, sessionKey, role: 'assistant', content: finalResponse, tokens: totalTokens });
 
-  // ── 9. Persist to ai_suggestions ──────────────────────────────────────────
+  // ── 9. Persist ai_suggestion + explainability record ─────────────────────
   try {
     const svc = createServiceClient();
-    await svc.from('ai_suggestions').insert({
+    const { data: suggestion } = await svc.from('ai_suggestions').insert({
       tenant_id:     params.tenantId,
       worker_id:     params.workerId,
-      task_type:     params.taskType ?? 'brain',
+      task_type:     taskType,
       session_key:   sessionKey,
       response:      finalResponse,
       risk_detected: riskDetected,
@@ -168,7 +218,23 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
       tokens_used:   totalTokens,
       model:         CLAUDE_BRAIN_MODEL,
       latency_ms:    latencyMs,
-    });
+    }).select('id').single();
+
+    // Explainability log (EU AI Act Art. 13)
+    if (suggestion?.id) {
+      await svc.from('ai_decision_log').insert({
+        suggestion_id:   suggestion.id,
+        tenant_id:       params.tenantId,
+        model:           CLAUDE_BRAIN_MODEL,
+        task_type:       taskType,
+        context_summary: `${ctx.sessions.length} sessions, ${ctx.charges.length} charges, ${ctx.claims.length} claims loaded`,
+        tools_invoked:   allToolCalls.map((t) => t.tool),
+        verification,
+        risk_class:      aiRiskProfile.classification,
+        guardrail_flags: [...inputGuard.flags, ...outputGuard.flags],
+        latency_ms:      latencyMs,
+      });
+    }
   } catch (e) {
     void log.warn('Failed to store ai_suggestion', { meta: { error: String(e) } });
   }
@@ -184,11 +250,19 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
       recordId:  params.tenantId,
       action:    'CREATE',
       entryMethod: 'manual',
-      newData: { task_type: params.taskType, risk_detected: riskDetected, tokens: totalTokens },
+      newData: { task_type: taskType, risk_detected: riskDetected, tokens: totalTokens, risk_class: aiRiskProfile.classification },
     });
   } catch {
     // Never let audit failure block AI response
   }
 
-  return { response: finalResponse, riskDetected, riskSummary, toolCalls: allToolCalls, verification, tokensUsed: totalTokens, model: CLAUDE_BRAIN_MODEL, latencyMs };
+  return {
+    response: finalResponse, riskDetected, riskSummary,
+    toolCalls: allToolCalls, verification,
+    tokensUsed: totalTokens, model: CLAUDE_BRAIN_MODEL, latencyMs,
+    guardrails:      { input: inputGuard, output: outputGuard },
+    aiRiskClass:     aiRiskProfile.classification,
+    requiresApproval: needsApproval && riskDetected,
+    approvalId,
+  };
 }
