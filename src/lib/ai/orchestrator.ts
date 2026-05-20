@@ -5,7 +5,8 @@
 //   → callClaude (with tool calling loop) → verifyResponse
 //   → storeMemory → storeAiSuggestion → writeAuditLog → return
 
-import OpenAI                  from 'openai';
+import type OpenAI from 'openai';
+import type Anthropic from '@anthropic-ai/sdk';
 import { buildTenantContext, formatContextBlock } from './context';
 import { getRecentMemory, storeMemoryTurn, retrieveRelevantSessions } from './memory';
 import { TOOL_DEFINITIONS, executeTool, type ToolCallRecord } from './tools';
@@ -46,7 +47,6 @@ export interface OrchestratorResult {
 
 export async function runAITask(params: OrchestratorParams): Promise<OrchestratorResult> {
   const started    = Date.now();
-  const openai     = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const sessionKey = params.sessionKey ?? `${new Date().toISOString().split('T')[0]}-brain`;
 
   // ── 0. Input guardrails (EU AI Act Art. 9) ───────────────────────────────
@@ -63,7 +63,27 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
       toolCalls:        [],
       verification:     { passed: false, warnings: inputGuard.flags, piiFlags: [], grounded: false },
       tokensUsed:       0,
-      model:            CLAUDE_BRAIN_MODEL,
+      model:            'none',
+      latencyMs,
+      guardrails:       { input: inputGuard, output: checkOutputGuardrails('', taskType, false) },
+      aiRiskClass:      aiRiskProfile.classification,
+      requiresApproval: false,
+    };
+  }
+
+  // ── Check AI API key availability ─────────────────────────────────────────
+  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+  const hasOpenAIKey    = !!process.env.OPENAI_API_KEY;
+
+  if (!hasAnthropicKey && !hasOpenAIKey) {
+    const latencyMs = Date.now() - started;
+    return {
+      response: '⚠️ **AI Brain is not yet configured.**\n\nNo AI API key has been set. To activate the AI Brain:\n\n1. Get an API key from [Anthropic](https://console.anthropic.com) (recommended) or [OpenAI](https://platform.openai.com)\n2. Add `ANTHROPIC_API_KEY=your-key` to your `.env.local` file\n3. Restart the development server\n\nAll other features (forms, saving, audit trail) work independently of the AI Brain.',
+      riskDetected:     false,
+      toolCalls:        [],
+      verification:     { passed: true, warnings: [], piiFlags: [], grounded: false },
+      tokensUsed:       0,
+      model:            'none',
       latencyMs,
       guardrails:       { input: inputGuard, output: checkOutputGuardrails('', taskType, false) },
       aiRiskClass:      aiRiskProfile.classification,
@@ -86,78 +106,88 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
   // ── 3. Load conversation memory ───────────────────────────────────────────
   const pastTurns = await getRecentMemory(params.tenantId, params.workerId, sessionKey);
 
-  // ── 4. Build Claude message list ──────────────────────────────────────────
+  // ── 4. Build message list ─────────────────────────────────────────────────
   const userContent = `${contextBlock}${ragBlock}\n\n---\n\nTask: ${params.task}`;
 
-  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: 'system', content: BRAIN_SYSTEM_PROMPT },
-    ...pastTurns.map((t): OpenAI.Chat.ChatCompletionMessageParam => ({
-      role:    t.role as 'user' | 'assistant',
-      content: t.content,
-    })),
-    { role: 'user', content: userContent },
-  ];
-
-  // ── 5. OpenAI call with tool calling loop ─────────────────────────────────
+  // ── 5. Call Anthropic (preferred) or OpenAI ───────────────────────────────
+  let finalResponse = '';
+  let totalTokens   = 0;
   const allToolCalls: ToolCallRecord[] = [];
-  let   totalTokens = 0;
-  let   finalResponse = '';
-  let   rounds = 0;
+  const usedModel = hasAnthropicKey ? 'claude-3-5-sonnet-20241022' : 'gpt-4o';
 
-  let response = await openai.chat.completions.create({
-    model:       CLAUDE_BRAIN_MODEL,
-    temperature: 0.2,
-    messages,
-    tools:       TOOL_DEFINITIONS,
-  });
+  if (hasAnthropicKey) {
+    // ── Anthropic Claude path ──────────────────────────────────────────────
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  totalTokens += response.usage?.total_tokens ?? 0;
-  let choice = response.choices[0];
-  let assistantMessage = choice.message;
+    const anthropicMessages: Anthropic.MessageParam[] = [
+      ...pastTurns.map((t): Anthropic.MessageParam => ({
+        role:    t.role as 'user' | 'assistant',
+        content: t.content,
+      })),
+      { role: 'user', content: userContent },
+    ];
 
-  while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && rounds < MAX_TOOL_ROUNDS) {
-    rounds++;
-    // Push assistant message (with tool_calls) to message log
-    messages.push(assistantMessage);
+    const response = await anthropic.messages.create({
+      model:      usedModel,
+      max_tokens: 2048,
+      system:     BRAIN_SYSTEM_PROMPT,
+      messages:   anthropicMessages,
+    });
 
-    for (const toolCall of assistantMessage.tool_calls) {
-      if (toolCall.type !== 'function') continue;
-      const tc = toolCall as any;
-      const toolName = tc.function.name;
-      let toolInput: Record<string, unknown> = {};
-      try {
-        toolInput = JSON.parse(tc.function.arguments);
-      } catch {
-        // ignore parse errors
-      }
+    finalResponse = response.content
+      .filter((c) => c.type === 'text')
+      .map((c) => (c as { type: 'text'; text: string }).text)
+      .join('\n');
+    totalTokens = (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0);
 
-      const { result, record } = await executeTool(
-        toolName,
-        toolInput,
-        { tenantId: params.tenantId, workerId: params.workerId },
-      );
-      allToolCalls.push(record);
+  } else {
+    // ── OpenAI path ────────────────────────────────────────────────────────
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      messages.push({
-        role:         'tool',
-        tool_call_id: toolCall.id,
-        content:      JSON.stringify(result),
-      });
-    }
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: BRAIN_SYSTEM_PROMPT },
+      ...pastTurns.map((t): OpenAI.Chat.ChatCompletionMessageParam => ({
+        role:    t.role as 'user' | 'assistant',
+        content: t.content,
+      })),
+      { role: 'user', content: userContent },
+    ];
 
-    response = await openai.chat.completions.create({
-      model:       CLAUDE_BRAIN_MODEL,
+    let response = await openai.chat.completions.create({
+      model:       usedModel,
       temperature: 0.2,
       messages,
       tools:       TOOL_DEFINITIONS,
     });
 
     totalTokens += response.usage?.total_tokens ?? 0;
-    choice = response.choices[0];
-    assistantMessage = choice.message;
+    let choice = response.choices[0];
+    let assistantMessage = choice.message;
+    let rounds = 0;
+
+    while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && rounds < MAX_TOOL_ROUNDS) {
+      rounds++;
+      messages.push(assistantMessage);
+      for (const toolCall of assistantMessage.tool_calls) {
+        if (toolCall.type !== 'function') continue;
+        const tc = toolCall as { function: { name: string; arguments: string }; id: string; type: string };
+        let toolInput: Record<string, unknown> = {};
+        try { toolInput = JSON.parse(tc.function.arguments); } catch { /* ignore */ }
+        const { result, record } = await executeTool(tc.function.name, toolInput, { tenantId: params.tenantId, workerId: params.workerId });
+        allToolCalls.push(record);
+        messages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(result) });
+      }
+      response = await openai.chat.completions.create({ model: usedModel, temperature: 0.2, messages, tools: TOOL_DEFINITIONS });
+      totalTokens += response.usage?.total_tokens ?? 0;
+      choice = response.choices[0];
+      assistantMessage = choice.message;
+    }
+    finalResponse = assistantMessage.content ?? '';
   }
 
-  finalResponse = assistantMessage.content ?? '';
+  const CLAUDE_BRAIN_MODEL = usedModel;
 
   // ── 6. Verify response ────────────────────────────────────────────────────
   const verification = verifyResponse(finalResponse, contextBlock);

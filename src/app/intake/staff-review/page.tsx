@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient as createBrowserClient } from '@/lib/supabase/client';
+
 import {
   ChevronRight, ArrowLeft, User, Phone, Mail, Home,
   Shield, AlertTriangle, CheckCircle2, Mic, MicOff
@@ -115,94 +115,57 @@ function StaffReviewInner() {
     setSaveError('');
 
     try {
-      const supabase = createBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace('/login'); return; }
-
-      const { data: dbUser, error: dbUserErr } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', user.id)
-        .single();
-
-      if (dbUserErr || !dbUser) throw new Error('Staff profile not found. Please contact admin.');
-
-      const { nok_address, ...restForm } = form;
-
-      const mapBenefitType = (bt: string) => {
-        const l = bt.toLowerCase();
-        if (l.includes('universal') || l === 'uc') return 'UC';
-        if (l.includes('housing') || l === 'hb') return 'HB';
-        if (l.includes('pip')) return 'PIP';
-        if (l.includes('esa')) return 'ESA';
-        if (l.includes('jsa')) return 'JSA';
-        if (l.includes('none') || !bt.trim()) return 'None';
-        return 'Other';
-      };
-
-      const mapBenefitFreq = (bf: string) => {
-        const l = bf.toLowerCase();
-        if (l.includes('month')) return 'Monthly';
-        if (l.includes('fort') || l.includes('2') || l.includes('4')) return '2wk';
-        if (l.includes('week')) return 'Weekly';
-        return 'Weekly';
-      };
-
       const payload = {
-        ...restForm,
-        brand,
-        benefit_type:    mapBenefitType(form.benefit_type),
-        benefit_freq:    mapBenefitFreq(form.benefit_freq),
-        benefit_amount:  parseFloat(form.benefit_amount) || 0,
-        date_entry_uk:   form.date_entry_uk   || null,
-        doctor:          form.doctor          || null,
-        place_of_birth:  form.place_of_birth  || null,
-        marital_status:  form.marital_status  || null,
+        title:                form.title,
+        full_name:            form.full_name.trim(),
+        dob:                  form.dob,
+        nino:                 form.nino.trim().toUpperCase(),
+        nationality:          form.nationality,
+        date_entry_uk:        form.date_entry_uk   || null,
+        address:              form.address,
+        room_number:          form.room_number.trim(),
+        email:                form.email           || null,
+        mobile:               form.mobile.trim(),
+        languages:            form.languages        || null,
+        benefit_type:         form.benefit_type,
+        benefit_freq:         form.benefit_freq,
+        benefit_amount:       form.benefit_amount,
+        nok_name:             form.nok_name.trim(),
+        nok_relation:         form.nok_relation,
+        nok_phone:            form.nok_phone.trim(),
+        nok_address:          form.nok_address      || null,
+        doctor:               form.doctor           || null,
+        place_of_birth:       form.place_of_birth   || null,
+        marital_status:       form.marital_status   || null,
         employer_or_college:  form.employer_or_college  || null,
         vehicle_registration: form.vehicle_registration || null,
+        moved_in:             form.moved_in,
+        on_probation:         form.on_probation,
         probation_officer:    form.probation_officer    || null,
-        languages:       form.languages || null,
-        email:           form.email     || null,
-        status:          'active' as const,
-        confidentiality_signed: false,
-        created_by:      dbUser.id,
+        brand,
+        _entry_method: mode, // passed to audit log
       };
 
-      const { data: tenant, error: insertErr } = await supabase
-        .from('tenants')
-        .insert(payload)
-        .select('id')
-        .single();
+      // ── Use the server-side API (service-role client — bypasses RLS correctly) ─
+      const res = await fetch('/api/intake/create', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
 
-      if (insertErr) throw new Error(insertErr.message);
+      const json = await res.json();
 
-      // ── Write audit log + blockchain stamp for the CREATE event ──────────────
-      // The /api/forms/save route with stamp=true computes the SHA-256 hash,
-      // writes an audit_logs row, and attempts the Polygon on-chain stamp.
-      try {
-        const stampRes = await fetch('/api/forms/save', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            form_id:   'personal',
-            tenant_id: tenant.id,
-            data:      payload,
-            stamp:     true,
-          }),
-        });
-        if (!stampRes.ok) {
-          const j = await stampRes.json().catch(() => ({}));
-          console.warn('[intake] Audit stamp warning:', j.error ?? stampRes.status);
-        }
-      } catch (stampErr) {
-        // Non-blocking — tenant is saved; stamp failure is logged but not fatal
-        console.warn('[intake] Audit stamp failed (non-fatal):', stampErr);
+      if (!res.ok) {
+        throw new Error(json.error ?? `Save failed (${res.status})`);
       }
 
-      sessionStorage.setItem('intake_tenant_id', tenant.id);
+      // Success — navigate to tenant-verify with the new tenant ID
+      sessionStorage.setItem('intake_tenant_id', json.tenant_id);
+      sessionStorage.setItem('intake_tenant_name', json.full_name);
       router.push('/intake/tenant-verify');
+
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : typeof e === 'object' && e !== null && 'message' in e ? String((e as Record<string, unknown>).message) : JSON.stringify(e);
+      const msg = e instanceof Error ? e.message : JSON.stringify(e);
       setSaveError(msg || 'Failed to save. Please try again.');
     } finally {
       setSaving(false);

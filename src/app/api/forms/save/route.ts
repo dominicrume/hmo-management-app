@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
         data.assessment_notes ? `Assessment Notes:\n${data.assessment_notes}` : '',
       ].filter(Boolean).join('\n\n');
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await svc
         .from('sessions')
         .insert({
           tenant_id,
@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
         data.workerName  ? `Key Worker: ${data.workerName}`     : '',
       ].filter(Boolean).join('\n\n');
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await svc
         .from('sessions')
         .insert({
           tenant_id,
@@ -352,7 +352,7 @@ export async function POST(req: NextRequest) {
         data.completedBy ? `Completed By: ${data.completedBy}` : '',
       ].filter(Boolean).join('\n\n');
 
-      const { data: session, error } = await supabase
+      const { data: session, error } = await svc
         .from('sessions')
         .insert({
           tenant_id,

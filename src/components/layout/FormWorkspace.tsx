@@ -191,12 +191,12 @@ export default function FormWorkspace({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Save failed');
       setStatus('saved');
-      setTimeout(() => setStatus('idle'), 4000);
+      setTimeout(() => setStatus('idle'), 8000);
       onSaved?.();
     } catch (e: unknown) {
       setErrMsg(e instanceof Error ? e.message : 'Save failed');
       setStatus('error');
-      setTimeout(() => setStatus('idle'), 6000);
+      // Do NOT auto-clear error — support worker must acknowledge it
     }
   }, [activeForm, activeTenantObj, onSaved]);
 
@@ -427,7 +427,7 @@ export default function FormWorkspace({
             {status === 'saving' && <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />}
             {status === 'saved'  && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />}
             {status === 'error'  && <AlertCircle  className="w-3.5 h-3.5 flex-shrink-0" />}
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 flex-1">
               {status === 'saving' && 'Saving and computing blockchain hash…'}
               {status === 'saved'  && (
                 <>
@@ -439,6 +439,14 @@ export default function FormWorkspace({
               )}
               {status === 'error' && (errMsg || 'Save failed — check the form and try again.')}
             </span>
+            {status === 'error' && (
+              <button
+                type="button"
+                onClick={() => { setStatus('idle'); setErrMsg(''); }}
+                className="ml-auto text-red-400 hover:text-red-600 font-bold text-sm leading-none"
+                aria-label="Dismiss error"
+              >×</button>
+            )}
           </div>
         )}
 

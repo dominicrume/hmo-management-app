@@ -4,7 +4,7 @@
 export type UserRole     = 'Manager' | 'SupportWorker' | 'Tenant';
 export type Brand        = 'mattys_place' | 'ash_shahada' | 'reliance';
 export type EntryMethod  = 'manual' | 'ocr' | 'voice';
-export type AuditAction  = 'CREATE' | 'EDIT' | 'VERIFY' | 'SIGN' | 'EXPORT' | 'DELETE_REQUEST' | 'LOGIN' | 'PRINT';
+export type AuditAction  = 'CREATE' | 'EDIT' | 'VERIFY' | 'SIGN' | 'EXPORT' | 'DELETE' | 'DELETE_REQUEST' | 'LOGIN' | 'PRINT';
 export type SessionType  = 'daily' | 'weekly' | 'monthly' | 'ad_hoc';
 export type BenefitType  = 'UC' | 'HB' | 'PIP' | 'ESA' | 'JSA' | 'None' | 'Other';
 export type BenefitFreq  = 'Monthly' | '2wk' | 'Weekly';
