@@ -22,23 +22,39 @@ export type Permission =
   | 'user:manage'
   | 'stats:read'
   | 'ai:use'
-  | 'settings:manage';
+  | 'settings:manage'
+  | 'notification:read'
+  | 'notification:write'
+  | 'claim:read'
+  | 'claim:create'
+  | 'claim:update'
+  | 'payment:read'
+  | 'payment:create'
+  | 'payment:update';
 
 const PERMISSION_MAP: Record<Permission, UserRole[]> = {
-  'tenant:read':     ['Manager', 'SupportWorker'],
-  'tenant:create':   ['Manager', 'SupportWorker'],
-  'tenant:update':   ['Manager', 'SupportWorker'],
-  'tenant:delete':   ['Manager'],
-  'session:read':    ['Manager', 'SupportWorker'],
-  'session:create':  ['Manager', 'SupportWorker'],
-  'charge:read':     ['Manager', 'SupportWorker'],
-  'charge:create':   ['Manager'],
-  'charge:update':   ['Manager'],
-  'audit:read':      ['Manager'],
-  'user:manage':     ['Manager'],
-  'stats:read':      ['Manager', 'SupportWorker'],
-  'ai:use':          ['Manager', 'SupportWorker'],
-  'settings:manage': ['Manager'],
+  'tenant:read':        ['Manager', 'SupportWorker'],
+  'tenant:create':      ['Manager', 'SupportWorker'],
+  'tenant:update':      ['Manager', 'SupportWorker'],
+  'tenant:delete':      ['Manager'],
+  'session:read':       ['Manager', 'SupportWorker'],
+  'session:create':     ['Manager', 'SupportWorker'],
+  'charge:read':        ['Manager', 'SupportWorker'],
+  'charge:create':      ['Manager'],
+  'charge:update':      ['Manager'],
+  'audit:read':         ['Manager'],
+  'user:manage':        ['Manager'],
+  'stats:read':         ['Manager', 'SupportWorker'],
+  'ai:use':             ['Manager', 'SupportWorker'],
+  'settings:manage':    ['Manager'],
+  'notification:read':  ['Manager', 'SupportWorker'],
+  'notification:write': ['Manager', 'SupportWorker'],
+  'claim:read':         ['Manager', 'SupportWorker'],
+  'claim:create':       ['Manager', 'SupportWorker'],
+  'claim:update':       ['Manager', 'SupportWorker'],
+  'payment:read':       ['Manager', 'SupportWorker'],
+  'payment:create':     ['Manager'],
+  'payment:update':     ['Manager'],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {
