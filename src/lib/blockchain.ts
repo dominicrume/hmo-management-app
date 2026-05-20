@@ -5,8 +5,8 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://polygon-rpc.com';
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
 
 const abi = [
-  "function stampAudit(address to, string memory uri, string memory documentHash) public returns (uint256)",
-  "event AuditStamped(uint256 indexed tokenId, string documentHash, address indexed stamper)"
+  "function stampRecord(string memory payloadHash, string memory metadata) public returns (uint256)",
+  "event RecordStamped(bytes32 indexed hashedPayload, string payloadHash, address indexed stamper, uint256 timestamp, string metadata)"
 ];
 
 export async function connectWallet() {
@@ -56,7 +56,7 @@ export async function stampAuditOnChain(documentHash: string, uri: string = "") 
     const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
     
     // Send the transaction
-    const tx = await contract.stampAudit(signer.address, uri, documentHash);
+    const tx = await contract.stampRecord(documentHash, uri);
     const receipt = await tx.wait();
     
     return {

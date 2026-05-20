@@ -1,56 +1,68 @@
 // Claude tool definitions + executors.
 // Each tool the AI can call has: a schema (sent to Claude) + an execute function.
 
-import Anthropic                from '@anthropic-ai/sdk';
+import OpenAI                  from 'openai';
 import { createServiceClient }  from '@/lib/supabase/server';
 import { retrieveRelevantSessions } from './memory';
 
-// ── Tool schemas (sent to Claude) ─────────────────────────────────────────────
+// ── Tool schemas (sent to OpenAI) ─────────────────────────────────────────────
 
-export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
+export const TOOL_DEFINITIONS: OpenAI.Chat.ChatCompletionTool[] = [
   {
-    name: 'search_session_notes',
-    description: 'Semantically search past session notes for this tenant. Use when you need to find sessions related to a specific topic or concern.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        query:    { type: 'string', description: 'What to search for in session notes' },
-        top_k:    { type: 'number', description: 'Max results (1–8)', default: 4 },
+    type: 'function',
+    function: {
+      name: 'search_session_notes',
+      description: 'Semantically search past session notes for this tenant. Use when you need to find sessions related to a specific topic or concern.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query:    { type: 'string', description: 'What to search for in session notes' },
+          top_k:    { type: 'number', description: 'Max results (1–8)', default: 4 },
+        },
+        required: ['query'],
       },
-      required: ['query'],
     },
   },
   {
-    name: 'flag_risk',
-    description: 'Formally flag a safeguarding or housing risk for this tenant. Creates a notification to the Manager and records the flag in the audit log.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        risk_summary: { type: 'string', description: 'Concise description of the risk (1–2 sentences)' },
-        severity:     { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Assessed severity level' },
+    type: 'function',
+    function: {
+      name: 'flag_risk',
+      description: 'Formally flag a safeguarding or housing risk for this tenant. Creates a notification to the Manager and records the flag in the audit log.',
+      parameters: {
+        type: 'object',
+        properties: {
+          risk_summary: { type: 'string', description: 'Concise description of the risk (1–2 sentences)' },
+          severity:     { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Assessed severity level' },
+        },
+        required: ['risk_summary', 'severity'],
       },
-      required: ['risk_summary', 'severity'],
     },
   },
   {
-    name: 'create_notification',
-    description: 'Send an in-app notification to a Manager about this tenant. Use for urgent items that need human attention.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        title:   { type: 'string', description: 'Short notification title (max 80 chars)' },
-        message: { type: 'string', description: 'Notification body (max 300 chars)' },
+    type: 'function',
+    function: {
+      name: 'create_notification',
+      description: 'Send an in-app notification to a Manager about this tenant. Use for urgent items that need human attention.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title:   { type: 'string', description: 'Short notification title (max 80 chars)' },
+          message: { type: 'string', description: 'Notification body (max 300 chars)' },
+        },
+        required: ['title', 'message'],
       },
-      required: ['title', 'message'],
     },
   },
   {
-    name: 'get_charge_detail',
-    description: 'Retrieve a detailed breakdown of service charges for this tenant, including payment history.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        unpaid_only: { type: 'boolean', description: 'If true, return only unpaid charges', default: false },
+    type: 'function',
+    function: {
+      name: 'get_charge_detail',
+      description: 'Retrieve a detailed breakdown of service charges for this tenant, including payment history.',
+      parameters: {
+        type: 'object',
+        properties: {
+          unpaid_only: { type: 'boolean', description: 'If true, return only unpaid charges', default: false },
+        },
       },
     },
   },

@@ -5,7 +5,7 @@
 //   → callClaude (with tool calling loop) → verifyResponse
 //   → storeMemory → storeAiSuggestion → writeAuditLog → return
 
-import Anthropic               from '@anthropic-ai/sdk';
+import OpenAI                  from 'openai';
 import { buildTenantContext, formatContextBlock } from './context';
 import { getRecentMemory, storeMemoryTurn, retrieveRelevantSessions } from './memory';
 import { TOOL_DEFINITIONS, executeTool, type ToolCallRecord } from './tools';
@@ -16,7 +16,7 @@ import { writeAuditLog }       from '@/lib/dal/auditLogs';
 import { log }                 from '@/lib/observability/logger';
 import { checkInputGuardrails, checkOutputGuardrails, AI_DISCLAIMER, classifyAIRisk, requiresHumanApproval } from '@/lib/compliance';
 
-const CLAUDE_BRAIN_MODEL   = 'claude-sonnet-4-6';
+const CLAUDE_BRAIN_MODEL   = 'gpt-4o';
 const MAX_TOOL_ROUNDS      = 5; // prevent infinite loops
 
 export interface OrchestratorParams {
@@ -46,7 +46,7 @@ export interface OrchestratorResult {
 
 export async function runAITask(params: OrchestratorParams): Promise<OrchestratorResult> {
   const started    = Date.now();
-  const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const openai     = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const sessionKey = params.sessionKey ?? `${new Date().toISOString().split('T')[0]}-brain`;
 
   // ── 0. Input guardrails (EU AI Act Art. 9) ───────────────────────────────
@@ -89,69 +89,75 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
   // ── 4. Build Claude message list ──────────────────────────────────────────
   const userContent = `${contextBlock}${ragBlock}\n\n---\n\nTask: ${params.task}`;
 
-  const messages: Anthropic.MessageParam[] = [
-    ...pastTurns.map((t): Anthropic.MessageParam => ({
-      role:    t.role,
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: BRAIN_SYSTEM_PROMPT },
+    ...pastTurns.map((t): OpenAI.Chat.ChatCompletionMessageParam => ({
+      role:    t.role as 'user' | 'assistant',
       content: t.content,
     })),
     { role: 'user', content: userContent },
   ];
 
-  // ── 5. Claude call with tool calling loop ─────────────────────────────────
+  // ── 5. OpenAI call with tool calling loop ─────────────────────────────────
   const allToolCalls: ToolCallRecord[] = [];
   let   totalTokens = 0;
   let   finalResponse = '';
   let   rounds = 0;
 
-  let claudeResponse = await anthropic.messages.create({
-    model:      CLAUDE_BRAIN_MODEL,
-    max_tokens: 1500,
-    system:     BRAIN_SYSTEM_PROMPT,
-    tools:      TOOL_DEFINITIONS,
+  let response = await openai.chat.completions.create({
+    model:       CLAUDE_BRAIN_MODEL,
+    temperature: 0.2,
     messages,
+    tools:       TOOL_DEFINITIONS,
   });
 
-  totalTokens += claudeResponse.usage.input_tokens + claudeResponse.usage.output_tokens;
+  totalTokens += response.usage?.total_tokens ?? 0;
+  let choice = response.choices[0];
+  let assistantMessage = choice.message;
 
-  while (claudeResponse.stop_reason === 'tool_use' && rounds < MAX_TOOL_ROUNDS) {
+  while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && rounds < MAX_TOOL_ROUNDS) {
     rounds++;
-    const toolUseBlocks = claudeResponse.content.filter(
-      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
-    );
+    // Push assistant message (with tool_calls) to message log
+    messages.push(assistantMessage);
 
-    // Execute all requested tools
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    for (const toolBlock of toolUseBlocks) {
+    for (const toolCall of assistantMessage.tool_calls) {
+      if (toolCall.type !== 'function') continue;
+      const tc = toolCall as any;
+      const toolName = tc.function.name;
+      let toolInput: Record<string, unknown> = {};
+      try {
+        toolInput = JSON.parse(tc.function.arguments);
+      } catch {
+        // ignore parse errors
+      }
+
       const { result, record } = await executeTool(
-        toolBlock.name,
-        toolBlock.input as Record<string, unknown>,
+        toolName,
+        toolInput,
         { tenantId: params.tenantId, workerId: params.workerId },
       );
       allToolCalls.push(record);
-      toolResults.push({
-        type:        'tool_result',
-        tool_use_id: toolBlock.id,
-        content:     JSON.stringify(result),
+
+      messages.push({
+        role:         'tool',
+        tool_call_id: toolCall.id,
+        content:      JSON.stringify(result),
       });
     }
 
-    // Continue conversation with tool results
-    messages.push({ role: 'assistant', content: claudeResponse.content });
-    messages.push({ role: 'user',      content: toolResults });
-
-    claudeResponse = await anthropic.messages.create({
-      model:      CLAUDE_BRAIN_MODEL,
-      max_tokens: 1500,
-      system:     BRAIN_SYSTEM_PROMPT,
-      tools:      TOOL_DEFINITIONS,
+    response = await openai.chat.completions.create({
+      model:       CLAUDE_BRAIN_MODEL,
+      temperature: 0.2,
       messages,
+      tools:       TOOL_DEFINITIONS,
     });
-    totalTokens += claudeResponse.usage.input_tokens + claudeResponse.usage.output_tokens;
+
+    totalTokens += response.usage?.total_tokens ?? 0;
+    choice = response.choices[0];
+    assistantMessage = choice.message;
   }
 
-  // Extract final text response
-  const textBlock = claudeResponse.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
-  finalResponse   = textBlock?.text ?? '';
+  finalResponse = assistantMessage.content ?? '';
 
   // ── 6. Verify response ────────────────────────────────────────────────────
   const verification = verifyResponse(finalResponse, contextBlock);

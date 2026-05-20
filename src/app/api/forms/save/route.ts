@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { ethers } from 'ethers';
+import { stampRecordOnChain } from '@/lib/blockchain/stamp';
 import type { AuditAction, EntryMethod } from '@/types/database';
 
 // POST /api/forms/save
@@ -382,56 +382,67 @@ export async function POST(req: NextRequest) {
     // We only write an explicit audit log entry here for session-based saves
     // where stamp=true (the DB trigger doesn't cover sessions → audit_logs).
 
-    if (stamp && tableName === 'sessions') {
-      const { error: auditErr } = await svc
-        .from('audit_logs')
-        .insert({
-          actor_id:    dbUser.id,
-          actor_name:  dbUser.full_name,
-          actor_role:  dbUser.role,
-          tenant_id,
-          table_name:  tableName,
-          record_id:   recordId,
-          action,
-          entry_method: entryMethod,
-          new_data:    data,
-          diff_fields: Object.keys(data as object),
-        });
+    if (stamp) {
+      if (tableName === 'sessions') {
+        const { error: auditErr } = await svc
+          .from('audit_logs')
+          .insert({
+            actor_id:    dbUser.id,
+            actor_name:  dbUser.full_name,
+            actor_role:  dbUser.role,
+            tenant_id,
+            table_name:  tableName,
+            record_id:   recordId,
+            action,
+            entry_method: entryMethod,
+            new_data:    data,
+            diff_fields: Object.keys(data as object),
+          });
 
-      if (auditErr) console.error('[audit log]', auditErr.message);
+        if (auditErr) console.error('[audit log]', auditErr.message);
+      }
 
-      // ── On-Chain Polygon Timestamping ──
+      // Query the generated audit log entry to get the exact payload_hash computed/saved
       try {
-        const rpcUrl = process.env.POLYGON_RPC_URL;
-        const privateKey = process.env.POLYGON_WALLET_PRIVATE_KEY;
-        const contractAddress = process.env.POLYGON_CONTRACT_ADDRESS;
+        const { data: auditRecord, error: fetchErr } = await svc
+          .from('audit_logs')
+          .select('id, payload_hash')
+          .eq('table_name', tableName)
+          .eq('record_id', recordId)
+          .order('stamped_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (rpcUrl && privateKey && contractAddress) {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          const wallet = new ethers.Wallet(privateKey, provider);
-          
-          const abi = [
-            "function stampAudit(address to, string memory uri, string memory documentHash) public returns (uint256)"
-          ];
-          
-          const contract = new ethers.Contract(contractAddress, abi, wallet);
-          
-          // Compute a deterministic Keccak256 hash of the form data
-          const documentHash = ethers.id(JSON.stringify(data));
-          
-          // Reference URI pointing back to our system's audit record
-          const uri = `tenant:${tenant_id}|record:${recordId}`;
+        if (fetchErr) {
+          console.error('[forms/save] Failed to fetch audit log:', fetchErr.message);
+        }
 
-          // Execute the transaction on the Polygon blockchain
-          const tx = await contract.stampAudit(wallet.address, uri, documentHash);
-          console.log('[polygon] Transaction sent! TX Hash:', tx.hash);
-          
-          // We update the audit log with the real blockchain transaction hash
-          await svc.from('audit_logs')
-            .update({ action: `${action}_ON_CHAIN` as AuditAction })
-            .eq('record_id', recordId);
-        } else {
-          console.log('[polygon] Skipping on-chain stamp: Missing RPC, Private Key, or Contract Address in .env.local');
+        if (auditRecord && auditRecord.payload_hash) {
+          const metadata = `audit:${auditRecord.id}`;
+          // Stamp using the standard server-side on-chain stamp utility
+          const result = await stampRecordOnChain(auditRecord.payload_hash, metadata);
+
+          if (result.success && result.transactionHash) {
+            console.log('[polygon] Stamped on-chain! TX Hash:', result.transactionHash);
+
+            // Update audit log with the real blockchain transaction hash
+            await svc
+              .from('audit_logs')
+              .update({ blockchain_tx_id: result.transactionHash })
+              .eq('id', auditRecord.id);
+
+            // Insert matching record to the blockchain_stamps cache table
+            await svc.from('blockchain_stamps').insert({
+              payload_hash: auditRecord.payload_hash,
+              audit_log_id: auditRecord.id,
+              tx_hash:      result.transactionHash,
+              block_number: result.blockNumber ?? null,
+              stamp_type:   'individual',
+              metadata,
+            });
+          } else {
+            console.log('[polygon] Stamping skipped or failed:', result.error);
+          }
         }
       } catch (chainErr) {
         console.error('[polygon] Failed to stamp on-chain:', chainErr);

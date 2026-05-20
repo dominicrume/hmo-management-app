@@ -1,5 +1,5 @@
 import { NextRequest }           from 'next/server';
-import Anthropic                 from '@anthropic-ai/sdk';
+import OpenAI                       from 'openai';
 import { withApi }               from '@/lib/api/middleware';
 import { apiOk, apiBadRequest }  from '@/lib/api/response';
 import { validate, firstError }  from '@/lib/api/validate';
@@ -38,16 +38,18 @@ export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, asyn
   const p = tenantCtx.profile ?? {};
   const userPrompt = `Tenant: ${p.full_name} | Benefits: ${p.benefit_type} | Probation: ${p.on_probation ? 'Yes' : 'No'}\n\nRecent sessions (newest first):\n${sessionContext}`;
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response  = await anthropic.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 400,
-    system:     QUESTIONS_SYSTEM_PROMPT,
-    messages:   [{ role: 'user', content: userPrompt }],
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const response = await openai.chat.completions.create({
+    model:       'gpt-4o-mini',
+    temperature: 0.2,
+    max_tokens:  400,
+    messages: [
+      { role: 'system', content: QUESTIONS_SYSTEM_PROMPT },
+      { role: 'user',   content: userPrompt },
+    ],
   });
 
-  const textBlock = response.content.find((b) => b.type === 'text');
-  const raw       = textBlock?.type === 'text' ? textBlock.text : '';
+  const raw = response.choices[0].message.content ?? '';
 
   let questions: string[] = [];
   try {
@@ -66,8 +68,8 @@ export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, asyn
       task_type:     'questions',
       response:      JSON.stringify(questions),
       risk_detected: false,
-      model:         'claude-haiku-4-5-20251001',
-      tokens_used:   response.usage.input_tokens + response.usage.output_tokens,
+      model:         'gpt-4o-mini',
+      tokens_used:   response.usage?.total_tokens ?? 0,
     });
   } catch { /* non-fatal */ }
 
