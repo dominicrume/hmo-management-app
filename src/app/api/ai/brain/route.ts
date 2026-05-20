@@ -1,103 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { createServiceClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/security/rbac';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { NextRequest }           from 'next/server';
+import { withApi }               from '@/lib/api/middleware';
+import { apiOk, apiBadRequest }  from '@/lib/api/response';
+import { validate, firstError }  from '@/lib/api/validate';
+import { runAITask }             from '@/lib/ai/orchestrator';
+import type { AuthContext }      from '@/lib/security/rbac';
 
+// POST /api/ai/brain — main agentic AI endpoint with memory + tool calling
+export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, async (req: NextRequest, ctx: AuthContext) => {
+  const body = await req.json();
+  const err  = firstError(validate(body, {
+    tenant_id:   { type: 'uuid',   required: true },
+    task:        { type: 'string', required: true, minLength: 1, maxLength: 2000 },
+    task_type:   { type: 'string' },
+    session_key: { type: 'string' },
+  }));
+  if (err) return apiBadRequest(err);
 
+  const result = await runAITask({
+    tenantId:   body.tenant_id,
+    workerId:   ctx.dbUser.id,
+    actorName:  ctx.dbUser.full_name,
+    actorRole:  ctx.dbUser.role,
+    task:       body.task,
+    taskType:   body.task_type ?? 'brain',
+    sessionKey: body.session_key,
+  });
 
-const SYSTEM_PROMPT = `You are the AI Brain for Matty's Place — an expert HMO housing support assistant for Ash Shahada Housing Association Ltd in Birmingham, UK.
-
-You have access to tenant session notes, personal details, risk assessments, and service charge data. Your role is to help support workers and managers by:
-- Summarising tenant situations clearly and concisely
-- Identifying safeguarding risks and patterns
-- Drafting council-ready reports and letters
-- Answering questions about specific tenants
-- Flagging payment arrears, missed appointments, or behavioural changes
-
-Tone: Professional, empathetic, concise. Never speculate beyond the data provided. If information is missing, say so.
-Format: Use markdown for structure when appropriate. Keep responses under 500 words unless a full report is requested.`;
-
-export async function POST(req: NextRequest) {
-  try {
-    // Auth + RBAC check
-    const guard = await requirePermission('ai:use');
-    if (!guard.ok) return guard.response;
-
-    // Rate limit per user — 10 requests per minute (protects OpenAI costs)
-    const rl = checkRateLimit(
-      `ai:${guard.ctx.dbUser.id}`,
-      RATE_LIMITS.aiBrain.maxRequests,
-      RATE_LIMITS.aiBrain.windowMs
-    );
-    if (!rl.allowed) {
-      return NextResponse.json(
-        { error: 'AI rate limit exceeded. Please wait a moment before trying again.' },
-        { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)) } }
-      );
-    }
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const { tenant_id, worker_id, task, task_type = 'agent_task' } = await req.json();
-    if (!task)      return NextResponse.json({ error: 'task required' }, { status: 400 });
-    if (!tenant_id) return NextResponse.json({ error: 'tenant_id required' }, { status: 400 });
-
-    const supabase = createServiceClient();
-
-    // Gather all tenant context
-    const [{ data: tenant }, { data: sessions }, { data: charges }, { data: verifications }] =
-      await Promise.all([
-        supabase.from('tenants').select('*').eq('id', tenant_id).single(),
-        supabase.from('sessions').select('session_date,session_type,notes,ai_summary,ai_risk_flag,ai_risk_note,checklist_items').eq('tenant_id', tenant_id).order('session_date', { ascending: false }).limit(20),
-        supabase.from('service_charges').select('period_start,period_end,amount_due,amount_paid,is_paid,payment_method').eq('tenant_id', tenant_id).order('period_start', { ascending: false }).limit(12),
-        supabase.from('tenant_verifications').select('verification_type,signed_at,verified_by_tenant').eq('tenant_id', tenant_id).order('created_at', { ascending: false }).limit(5),
-      ]);
-
-    const context = `
-## Tenant Record
-Name: ${tenant?.full_name} | Room: ${tenant?.room_number} | Status: ${tenant?.status}
-DOB: ${tenant?.dob} | NINO: ${tenant?.nino} | Nationality: ${tenant?.nationality}
-Move-in: ${tenant?.moved_in} | Brand: ${tenant?.brand}
-Benefits: ${tenant?.benefit_type} (${tenant?.benefit_freq}) £${tenant?.benefit_amount}/period
-Next of Kin: ${tenant?.nok_name} (${tenant?.nok_relation}) — ${tenant?.nok_phone}
-On Probation: ${tenant?.on_probation ? 'YES — Officer: ' + (tenant?.probation_officer ?? 'unknown') : 'No'}
-Confidentiality Signed: ${tenant?.confidentiality_signed ? 'Yes' : 'No'}
-
-## Recent Sessions (${sessions?.length ?? 0} records)
-${sessions?.map((s) => `[${s.session_date} — ${s.session_type}${s.ai_risk_flag ? ' ⚠️ RISK FLAGGED' : ''}]\n${s.notes ?? s.ai_summary ?? 'No notes.'}`).join('\n\n') ?? 'No sessions recorded.'}
-
-## Service Charges (${charges?.length ?? 0} records)
-${charges?.map((c) => `${c.period_start} → ${c.period_end}: £${c.amount_due} due, £${c.amount_paid} paid — ${c.is_paid ? '✅ Paid' : '❌ UNPAID'} (${c.payment_method})`).join('\n') ?? 'No charge records.'}
-
-## Verifications
-${verifications?.map((v) => `${v.verification_type} — signed: ${v.signed_at ?? 'Not yet'} — tenant confirmed: ${v.verified_by_tenant}`).join('\n') ?? 'No verifications recorded.'}
-`;
-
-    const aiResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `${context}\n\n---\n\nTask: ${task}` },
-      ],
-    });
-
-    const response = aiResponse.choices[0].message.content || '';
-
-    // Detect risk flags in the response
-    const riskKeywords = ['safeguarding', 'risk', 'concern', 'urgent', 'immediate', 'deteriorat', 'arrears', 'eviction'];
-    const isRisk = riskKeywords.some((kw) => response.toLowerCase().includes(kw));
-
-    // Table ai_suggestions does not exist in schema.sql. Skipping insertion to prevent 500 error.
-    // We still return the JSON correctly to the frontend.
-    console.log('[AI brain] Returning response for task:', task_type);
-
-    return NextResponse.json({ response, risk_detected: isRisk, tokens: aiResponse.usage });
-  } catch (e: unknown) {
-    console.error('[AI brain]', e);
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'AI error' }, { status: 500 });
-  }
-}
+  return apiOk({
+    response:     result.response,
+    risk_detected: result.riskDetected,
+    risk_summary:  result.riskSummary,
+    tool_calls:    result.toolCalls,
+    verified:      result.verification.passed,
+    warnings:      result.verification.warnings,
+    tokens:        result.tokensUsed,
+    model:         result.model,
+    latency_ms:    result.latencyMs,
+  });
+});
 
 export async function GET() {
+  const { NextResponse } = await import('next/server');
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

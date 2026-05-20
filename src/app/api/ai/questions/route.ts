@@ -1,88 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { createServiceClient } from '@/lib/supabase/server';
-import { requirePermission } from '@/lib/security/rbac';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rate-limit';
+import { NextRequest }           from 'next/server';
+import Anthropic                 from '@anthropic-ai/sdk';
+import { withApi }               from '@/lib/api/middleware';
+import { apiOk, apiBadRequest }  from '@/lib/api/response';
+import { validate, firstError }  from '@/lib/api/validate';
+import { buildTenantContext }    from '@/lib/ai/context';
+import { QUESTIONS_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { createServiceClient }   from '@/lib/supabase/server';
+import type { AuthContext }      from '@/lib/security/rbac';
 
-export async function POST(req: NextRequest) {
-  try {
-    const guard = await requirePermission('ai:use');
-    if (!guard.ok) return guard.response;
+// POST /api/ai/questions — generate 3 targeted session follow-up questions
+export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, async (req: NextRequest, ctx: AuthContext) => {
+  const body = await req.json();
+  const err  = firstError(validate(body, {
+    tenant_id: { type: 'uuid', required: true },
+  }));
+  if (err) return apiBadRequest(err);
 
-    const rl = checkRateLimit(`questions:${guard.ctx.dbUser.id}`, RATE_LIMITS.aiBrain.maxRequests, RATE_LIMITS.aiBrain.windowMs);
-    if (!rl.allowed) return NextResponse.json({ error: 'Rate limit exceeded.' }, { status: 429 });
+  const tenantCtx = await buildTenantContext(body.tenant_id);
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const { tenant_id, worker_id } = await req.json();
-    if (!tenant_id) return NextResponse.json({ error: 'tenant_id required' }, { status: 400 });
-
-    const supabase = createServiceClient();
-
-    // Fetch last 2 weeks of session notes
-    const { data: sessions } = await supabase
-      .from('sessions')
-      .select('session_date, session_type, notes, ai_summary, checklist_items')
-      .eq('tenant_id', tenant_id)
-      .order('session_date', { ascending: false })
-      .limit(10);
-
-    // Fetch tenant profile + support plan context
-    const { data: tenant } = await supabase
-      .from('tenants')
-      .select('full_name, nationality, benefit_type, on_probation, status, moved_in')
-      .eq('id', tenant_id)
-      .single();
-
-    if (!sessions?.length) {
-      return NextResponse.json({
-        questions: [
-          'How have you been feeling since we last spoke?',
-          'Have there been any changes to your housing benefit or income this week?',
-          'Is there anything you need support with regarding your accommodation?',
-        ],
-        source: 'default',
-      });
-    }
-
-    const sessionContext = sessions
-      .map((s) => `[${s.session_date} — ${s.session_type}]\n${s.notes ?? s.ai_summary ?? 'No notes recorded.'}`)
-      .join('\n\n');
-
-    const prompt = `You are a professional HMO support worker assistant for Matty's Place, a supported housing service in Birmingham, UK.
-
-Tenant: ${tenant?.full_name ?? 'Unknown'}
-Background: Nationality: ${tenant?.nationality ?? 'Unknown'}, Benefits: ${tenant?.benefit_type ?? 'Unknown'}, Probation: ${tenant?.on_probation ? 'Yes' : 'No'}
-
-Recent session notes (most recent first):
-${sessionContext}
-
-Based on these session notes, generate exactly 3 targeted follow-up questions for this week's support session. The questions should:
-1. Follow up on specific issues or concerns mentioned in previous sessions
-2. Check on any commitments or actions the tenant agreed to
-3. Probe any wellbeing, housing, or financial risks identified
-
-Format your response as a JSON object with a single key "questions" containing an array of exactly 3 strings. No preamble, no explanation — just the JSON.`;
-
-    const aiResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+  // No sessions yet — return safe defaults
+  if (!tenantCtx.sessions.length) {
+    return apiOk({
+      questions: [
+        'How have you been feeling since we last spoke?',
+        'Have there been any changes to your housing benefit or income this week?',
+        'Is there anything you need support with regarding your accommodation?',
+      ],
+      source: 'default',
     });
-
-    const raw = aiResponse.choices[0].message.content || '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { questions: [raw] };
-
-    // Store in ai_suggestions
-    // ai_suggestions table does not exist in schema, skipping insert to prevent 500 crashes
-    console.log('[AI questions] Successfully generated questions for tenant');
-
-    return NextResponse.json({ questions: parsed.questions, source: 'ai' });
-  } catch (e: unknown) {
-    console.error('[AI questions]', e);
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'AI error' }, { status: 500 });
   }
-}
+
+  const sessionContext = tenantCtx.sessions
+    .slice(0, 10)
+    .map((s) => `[${s.session_date} — ${s.session_type}]\n${s.notes ?? s.ai_summary ?? 'No notes.'}`)
+    .join('\n\n');
+
+  const p = tenantCtx.profile ?? {};
+  const userPrompt = `Tenant: ${p.full_name} | Benefits: ${p.benefit_type} | Probation: ${p.on_probation ? 'Yes' : 'No'}\n\nRecent sessions (newest first):\n${sessionContext}`;
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response  = await anthropic.messages.create({
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 400,
+    system:     QUESTIONS_SYSTEM_PROMPT,
+    messages:   [{ role: 'user', content: userPrompt }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === 'text');
+  const raw       = textBlock?.type === 'text' ? textBlock.text : '';
+
+  let questions: string[] = [];
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    questions = match ? JSON.parse(match[0]).questions : [raw];
+  } catch {
+    questions = [raw];
+  }
+
+  // Store in ai_suggestions
+  try {
+    const svc = createServiceClient();
+    await svc.from('ai_suggestions').insert({
+      tenant_id:     body.tenant_id,
+      worker_id:     ctx.dbUser.id,
+      task_type:     'questions',
+      response:      JSON.stringify(questions),
+      risk_detected: false,
+      model:         'claude-haiku-4-5-20251001',
+      tokens_used:   response.usage.input_tokens + response.usage.output_tokens,
+    });
+  } catch { /* non-fatal */ }
+
+  return apiOk({ questions, source: 'ai' });
+});
 
 export async function GET() {
+  const { NextResponse } = await import('next/server');
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
