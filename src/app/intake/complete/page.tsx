@@ -93,7 +93,7 @@ export default function IntakeCompletePage() {
         )}
 
         {/* Blockchain stamp */}
-        {auditLog && (
+        {auditLog ? (
           <div className="bg-emerald-900/20 border border-emerald-700/30 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
               <LinkIcon className="w-4 h-4 text-emerald-400" />
@@ -127,6 +127,16 @@ export default function IntakeCompletePage() {
                 </div>
               </div>
             </div>
+          </div>
+        ) : (
+          <div className="bg-navy-light border border-navy-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <LinkIcon className="w-4 h-4 text-amber" />
+              <p className="text-amber text-xs font-black uppercase tracking-wider">Blockchain Stamp — Processing</p>
+            </div>
+            <p className="text-slate-400 text-xxs font-mono">
+              SHA-256 hash is being computed and written to the audit trail. Refresh the Audit Log in a moment to view the stamp.
+            </p>
           </div>
         )}
 

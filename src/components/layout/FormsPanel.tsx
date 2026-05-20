@@ -135,30 +135,45 @@ function StatusBadge({ status, active }: { status: FormStatus; active: boolean }
   );
 }
 
-interface Props {
-  activeForm: FormId;
-  onSelectForm: (form: FormId) => void;
-  tenant?: DbTenant | null;
-}
-
-// Derive live form status from the tenant record
-function deriveStatus(formId: FormId, tenant: DbTenant | null | undefined): FormStatus {
+// Derive live form status from the tenant record + optional completion signals
+function deriveStatus(
+  formId: FormId,
+  tenant: DbTenant | null | undefined,
+  completedForms?: Set<string>,
+): FormStatus {
   if (!tenant) return '';
+
+  // If caller has session/charge data, use it
+  if (completedForms?.has(formId)) return 'Complete';
+
   switch (formId) {
     case 'personal':
-      return tenant.full_name && tenant.nino && tenant.mobile ? 'Complete' : 'In Progress';
+      return tenant.full_name && tenant.nino && tenant.mobile && tenant.nok_name
+        ? 'Complete'
+        : 'In Progress';
     case 'privacy':
       return tenant.confidentiality_signed ? 'Complete' : 'Required';
-    case 'assessment':
-      return tenant.assigned_worker_id ? 'Complete' : 'Required';
     case 'missing':
       return tenant.status === 'missing' ? 'Review' : '';
+    case 'service':
+      // If benefit_amount is set, a service charge is likely configured
+      return tenant.benefit_amount && Number(tenant.benefit_amount) > 0 ? 'Complete' : '';
+    case 'assessment':
+      return tenant.assigned_worker_id ? 'Complete' : '';
     default:
       return '';
   }
 }
 
-export default function FormsPanel({ activeForm, onSelectForm, tenant }: Props) {
+interface Props {
+  activeForm:    FormId;
+  onSelectForm:  (form: FormId) => void;
+  tenant?:       DbTenant | null;
+  /** Set of form IDs that have been saved (passed from dashboard with session data) */
+  completedForms?: Set<string>;
+}
+
+export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms }: Props) {
   const handlePrint = () => window.print();
 
   return (
@@ -188,7 +203,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant }: Props) 
       <ul className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {FORMS.map((form) => {
           const isActive = form.id === activeForm;
-          const liveStatus = deriveStatus(form.id, tenant) || form.status;
+          const liveStatus = deriveStatus(form.id, tenant, completedForms) || form.status;
           return (
             <li key={form.id}>
               <button

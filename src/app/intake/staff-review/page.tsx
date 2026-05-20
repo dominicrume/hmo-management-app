@@ -176,7 +176,28 @@ function StaffReviewInner() {
 
       if (insertErr) throw new Error(insertErr.message);
 
-
+      // ── Write audit log + blockchain stamp for the CREATE event ──────────────
+      // The /api/forms/save route with stamp=true computes the SHA-256 hash,
+      // writes an audit_logs row, and attempts the Polygon on-chain stamp.
+      try {
+        const stampRes = await fetch('/api/forms/save', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            form_id:   'personal',
+            tenant_id: tenant.id,
+            data:      payload,
+            stamp:     true,
+          }),
+        });
+        if (!stampRes.ok) {
+          const j = await stampRes.json().catch(() => ({}));
+          console.warn('[intake] Audit stamp warning:', j.error ?? stampRes.status);
+        }
+      } catch (stampErr) {
+        // Non-blocking — tenant is saved; stamp failure is logged but not fatal
+        console.warn('[intake] Audit stamp failed (non-fatal):', stampErr);
+      }
 
       sessionStorage.setItem('intake_tenant_id', tenant.id);
       router.push('/intake/tenant-verify');

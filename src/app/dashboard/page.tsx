@@ -3,13 +3,15 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users, MoreVertical, Brain } from 'lucide-react';
 
 import { Sidebar }      from '@/components/sidebar';
 import LetterheadSwitcher, { type Brand } from '@/components/layout/LetterheadSwitcher';
 import FormsPanel,      { type FormId }   from '@/components/layout/FormsPanel';
 import FormWorkspace    from '@/components/layout/FormWorkspace';
+import AdminRecordModal from '@/components/modals/AdminRecordModal';
+import AIBrainPanel     from '@/components/ai/AIBrainPanel';
 
 import DashboardView    from '@/components/views/DashboardView';
 import SessionsView     from '@/components/views/SessionsView';
@@ -22,14 +24,16 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import type { DbTenant, DbUser } from '@/types/database';
 
 // ── Views that use the full-width layout (no forms panel) ─────────────────────
-const FULL_WIDTH_VIEWS = new Set(['dashboard', 'tenants', 'sessions', 'ledger', 'risk', 'audit', 'print', 'ai-brain', 'settings']);
+// NOTE: 'ai-brain' is handled by its own case in renderCenter() below
+const FULL_WIDTH_VIEWS = new Set(['dashboard', 'tenants', 'sessions', 'ledger', 'risk', 'audit', 'print', 'settings']);
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const router     = useRouter();
+  const searchParams = useSearchParams();
 
   const [activeBrand,    setActiveBrand]    = useState<Brand>('mattys_place');
   const [activeNav,      setActiveNav]      = useState('personal');
-  const [navMenuOpen,    setNavMenuOpen]    = useState(false);
+
   const [activeTenant,   setActiveTenant]   = useState<DbTenant | null>(null);
   const [activeForm,     setActiveForm]     = useState<FormId>('personal');
   const [tenantSearch,   setTenantSearch]   = useState('');
@@ -43,6 +47,8 @@ export default function DashboardPage() {
   const [unpaidItems,    setUnpaidItems]    = useState<{ id: string; amount_due: number; amount_paid: number; tenant_id: string }[]>([]);
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
   const [tenantPanelOpen, setTenantPanelOpen] = useState(false);
+  const [adminModal,     setAdminModal]     = useState<DbTenant | null>(null);
+  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
 
   const supabase = createBrowserClient();
 
@@ -112,6 +118,22 @@ export default function DashboardPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ── Apply URL params (?tenant=, ?form=) once tenants have loaded ──────────
+  useEffect(() => {
+    if (urlParamsApplied || loadingTenants || tenants.length === 0) return;
+    const tenantParam = searchParams.get('tenant');
+    const formParam   = searchParams.get('form') as FormId | null;
+    if (tenantParam) {
+      const found = tenants.find((t) => t.id === tenantParam);
+      if (found) setActiveTenant(found);
+    }
+    if (formParam) {
+      setActiveForm(formParam);
+      setActiveNav(formParam);
+    }
+    setUrlParamsApplied(true);
+  }, [tenants, loadingTenants, searchParams, urlParamsApplied]);
+
   // Real-time tenant updates
   useEffect(() => {
     const channel = supabase
@@ -160,16 +182,6 @@ export default function DashboardPage() {
   const renderCenter = () => {
     switch (activeNav) {
       case 'dashboard':
-        return (
-          <Suspense fallback={<ViewFallback />}>
-            <DashboardView
-              tenants={tenants}
-              currentUser={currentUser}
-              onNavigate={handleNavigate}
-              onNewIntake={() => router.push('/intake/new')}
-            />
-          </Suspense>
-        );
       case 'tenants':
         return (
           <Suspense fallback={<ViewFallback />}>
@@ -180,6 +192,25 @@ export default function DashboardPage() {
               onNewIntake={() => router.push('/intake/new')}
             />
           </Suspense>
+        );
+
+      case 'ai-brain':
+        return (
+          <main className="flex-1 overflow-hidden bg-white flex flex-col">
+            {activeTenant && currentUser ? (
+              <AIBrainPanel tenant={activeTenant} workerId={currentUser.id} />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
+                <div className="w-16 h-16 rounded-2xl bg-amber/10 flex items-center justify-center">
+                  <Brain className="w-8 h-8 text-amber" />
+                </div>
+                <div>
+                  <p className="text-navy font-bold text-sm mb-1">Select a Tenant to use the AI Brain</p>
+                  <p className="text-slate-400 text-xs">Choose a tenant from the list on the left to load their context into the AI Brain.</p>
+                </div>
+              </div>
+            )}
+          </main>
         );
       case 'sessions':
         return (
@@ -256,7 +287,7 @@ export default function DashboardPage() {
           </main>
         );
       default:
-        // 'ai-brain' and any form nav — show the form workspace + forms panel
+        // Any form nav — show the form workspace + forms panel
         return (
           <>
             <FormWorkspace
@@ -524,12 +555,12 @@ export default function DashboardPage() {
                     )}
                   </li>
                 ) : filteredTenants.map((tenant) => {
-                  const isActive = tenant.id === activeTenant?.id;
-                  const initials = tenant.full_name
-                    .split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+                  const isActive  = tenant.id === activeTenant?.id;
+                  const initials  = tenant.full_name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+                  const isManager = currentUser?.role === 'Manager';
 
                   return (
-                    <li key={tenant.id}>
+                    <li key={tenant.id} className="relative group">
                       <button
                         type="button"
                         aria-label={`Select tenant ${tenant.full_name}`}
@@ -572,6 +603,22 @@ export default function DashboardPage() {
                         </div>
                         {isActive && <ChevronRight className="w-3.5 h-3.5 text-amber flex-shrink-0" />}
                       </button>
+
+                      {/* Manager-only admin context button */}
+                      {isManager && (
+                        <button
+                          type="button"
+                          title="Admin record management"
+                          onClick={(e) => { e.stopPropagation(); setAdminModal(tenant); }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md
+                                     bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500
+                                     flex items-center justify-center transition-all
+                                     opacity-0 group-hover:opacity-100"
+                          aria-label={`Admin options for ${tenant.full_name}`}
+                        >
+                          <MoreVertical className="w-3 h-3" />
+                        </button>
+                      )}
                     </li>
                   );
                 })}
@@ -612,6 +659,24 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* ── Admin Record Modal — Manager only ─────────────────────────────── */}
+      {adminModal && (
+        <AdminRecordModal
+          tenant={adminModal}
+          onClose={() => setAdminModal(null)}
+          onComplete={(action) => {
+            setAdminModal(null);
+            if (action === 'deleted') {
+              // Remove tenant from list immediately
+              setTenants((prev) => prev.filter((t) => t.id !== adminModal.id));
+              if (activeTenant?.id === adminModal.id) setActiveTenant(null);
+            }
+            // Refresh data to get updated status
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }
