@@ -301,7 +301,7 @@ export default function DashboardPage() {
                 activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
                 activeTenantObj={activeTenant}
                 workerId={currentUser?.id}
-                isManager={currentUser?.role === 'Manager' || currentUser?.role === 'Owner'}
+                isManager={currentUser?.role === 'Manager'}
                 onAdminAction={() => activeTenant && setAdminModal(activeTenant)}
                 onSaved={loadData}
               />
