@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       nok_name:             payload.nok_name.trim(),
       nok_relation:         payload.nok_relation           || '',
       nok_phone:            payload.nok_phone.trim(),
-      nok_address:          payload.nok_address            || null,
+      // nok_address:          payload.nok_address            || null,
       doctor:               payload.doctor                 || null,
       place_of_birth:       payload.place_of_birth         || null,
       marital_status:       payload.marital_status         || null,

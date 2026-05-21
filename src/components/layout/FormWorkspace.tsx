@@ -156,15 +156,13 @@ interface Props {
   activeTenant:     string;
   activeTenantObj?: DbTenant | null;
   workerId?:        string;
-  isManager?:       boolean;
-  onAdminAction?:   () => void;
   onSaved?:         () => void;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function FormWorkspace({
-  brand, activeForm, activeTenant, activeTenantObj, workerId, isManager, onAdminAction, onSaved,
+  brand, activeForm, activeTenant, activeTenantObj, workerId, onSaved,
 }: Props) {
   const lh    = LETTERHEAD[brand];
   const today = new Date().toLocaleDateString('en-GB', {
@@ -407,29 +405,15 @@ export default function FormWorkspace({
               All entries are blockchain-stamped on save. The original is preserved in the audit trail.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {isManager && activeTenantObj && (
-              <button
-                type="button"
-                onClick={onAdminAction}
-                className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-red-200
-                           bg-red-50 rounded-lg text-xxs font-bold text-red-600 hover:bg-red-100 transition-colors"
-                title="Erase or Archive this tenant record"
-              >
-                <AlertCircle className="w-3 h-3" />
-                Manage Record
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-slate-200
-                         rounded-lg text-xxs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-            >
-              <Printer className="w-3 h-3" />
-              Print
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-slate-200
+                       rounded-lg text-xxs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            <Printer className="w-3 h-3" />
+            Print
+          </button>
         </div>
 
         {/* ── Save status bar ── */}

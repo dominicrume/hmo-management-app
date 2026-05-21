@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
           nok_name:          data.nok_name          || undefined,
           nok_relation:      data.nok_relation      || undefined,
           nok_phone:         data.nok_phone         || undefined,
-          nok_address:       data.nok_address       || null,
+          // nok_address:       data.nok_address       || null,
           doctor:            data.doctor            || null,
           on_probation:      data.on_probation      ?? undefined,
           probation_officer: data.probation_officer || null,
