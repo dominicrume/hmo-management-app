@@ -292,29 +292,33 @@ export default function DashboardPage() {
             </div>
           </main>
         );
-      default:
-        // Any form nav — show the form workspace + forms panel
         return (
-          <>
-            <FormWorkspace
-              brand={activeBrand}
-              activeForm={activeForm}
-              activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
-              activeTenantObj={activeTenant}
-              workerId={currentUser?.id}
-              onSaved={loadData}
-            />
-            <div className="no-print">
+          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden w-full relative">
+            <div className="w-full lg:flex-1 h-full flex flex-col overflow-hidden">
+              <FormWorkspace
+                brand={activeBrand}
+                activeForm={activeForm}
+                activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
+                activeTenantObj={activeTenant}
+                workerId={currentUser?.id}
+                onSaved={loadData}
+              />
+            </div>
+            
+            {/* Forms list - hidden by default on mobile unless toggled, or stack it at bottom */}
+            <div className="no-print w-full lg:w-auto h-64 lg:h-full flex-shrink-0 border-t lg:border-t-0 lg:border-l border-slate-200 order-last lg:order-last bg-white">
               <FormsPanel
                 activeForm={activeForm}
                 onSelectForm={(id) => {
                   setActiveForm(id);
                   setActiveNav(id === 'ai-brain' ? 'ai-brain' : activeNav);
+                  // Scroll to top of form when a new one is selected on mobile
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 tenant={activeTenant}
               />
             </div>
-          </>
+          </div>
         );
     }
   };

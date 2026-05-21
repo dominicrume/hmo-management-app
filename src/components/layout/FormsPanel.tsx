@@ -186,7 +186,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
 
   return (
     <aside
-      className="w-panel min-w-panel max-w-panel bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden"
+      className="w-full lg:w-panel lg:min-w-panel lg:max-w-panel bg-white lg:border-l border-slate-200 flex flex-col h-full overflow-hidden"
       aria-label="Forms library"
     >
       {/* Header */}
