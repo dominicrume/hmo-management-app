@@ -76,6 +76,7 @@ export async function getApiAuthContext(): Promise<
   { ok: true; ctx: AuthContext } | { ok: false; response: NextResponse }
 > {
   const supabase = createClient();
+  const svc      = createServiceClient(); // service-role — bypasses users table RLS
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
@@ -88,7 +89,9 @@ export async function getApiAuthContext(): Promise<
     };
   }
 
-  const { data: dbUser } = await supabase
+  // Use service-role so RLS on 'users' table never blocks this lookup.
+  // Auth is already verified above (we have a valid JWT from supabase.auth.getUser()).
+  const { data: dbUser } = await svc
     .from('users')
     .select('*')
     .eq('auth_id', user.id)

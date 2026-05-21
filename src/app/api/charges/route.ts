@@ -5,23 +5,26 @@ import { apiOk, apiBadRequest, apiServerError } from '@/lib/api/response';
 import { validate, firstError }                 from '@/lib/api/validate';
 import type { AuthContext }                     from '@/lib/security/rbac';
 
-// GET /api/charges?tenant_id=
+// GET /api/charges?tenant_id=&unpaid=true
 export const GET = withApi({ permission: 'charge:read', rateLimit: 'api' }, async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
   const tenantId = searchParams.get('tenant_id');
+  const unpaidOnly = searchParams.get('unpaid') === 'true';
 
   const svc = createServiceClient();
   let query = svc
     .from('service_charges')
-    .select('*, tenants(full_name, room_number)')
+    .select('id, amount_due, amount_paid, tenant_id, is_paid, period_start, period_end')
     .order('period_start', { ascending: false })
-    .limit(100);
+    .limit(200);
 
-  if (tenantId) query = query.eq('tenant_id', tenantId);
+  if (tenantId)  query = query.eq('tenant_id', tenantId);
+  if (unpaidOnly) query = query.eq('is_paid', false);
 
   const { data, error } = await query;
   if (error) throw error;
-  return apiOk(data ?? []);
+  // Return both formats for compatibility
+  return apiOk({ charges: data ?? [], data: data ?? [] });
 });
 
 // PATCH /api/charges — toggle is_paid

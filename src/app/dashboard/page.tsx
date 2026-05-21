@@ -52,43 +52,47 @@ export default function DashboardPage() {
 
   const supabase = createBrowserClient();
 
-  // ── Load current user + tenants ───────────────────────────────────────────
+  // ── Load current user + tenants via server APIs (bypasses RLS correctly) ──
 
   const loadData = useCallback(async () => {
     setLoadingTenants(true);
     setError('');
 
     try {
+      // 1. Verify auth via browser client (sets cookie, redirects if needed)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      const { data: dbUser, error: userErr } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', user.id)
-        .single();
+      // 2. Load user profile via server API (service-role = reliable, no RLS block)
+      const meRes = await fetch('/api/me');
+      if (meRes.status === 401) { router.push('/login'); return; }
 
-      if (userErr) {
-        if (userErr.code === 'PGRST116' || userErr.message?.includes('permission denied')) {
-          // No users row yet — auto-create Manager profile via service-role API
-          const setup = await fetch('/api/setup', { method: 'POST' });
-          if (setup.ok) {
-            // Retry loading after setup
-            loadData();
-            return;
-          }
-          throw new Error('First-time setup failed. Please click "Setup Account" below.');
+      if (meRes.status === 404) {
+        // No users row — first-time Manager setup
+        const setupRes = await fetch('/api/setup', { method: 'POST' });
+        if (setupRes.ok) {
+          loadData(); // Retry after setup creates the Manager row
+          return;
         }
-        throw new Error(userErr.message ?? 'Failed to load user profile');
+        const setupJson = await setupRes.json();
+        throw new Error(setupJson.error ?? 'Account setup failed. Contact your administrator.');
       }
+
+      if (!meRes.ok) {
+        const meJson = await meRes.json().catch(() => ({}));
+        throw new Error(meJson.error ?? 'Failed to load user profile');
+      }
+
+      const { user: dbUser } = await meRes.json();
       setCurrentUser(dbUser as DbUser);
 
-      const { data: tenantRows, error: tenantErr } = await supabase
-        .from('tenants')
-        .select('*')
-        .order('full_name');
-      if (tenantErr) throw new Error(tenantErr.message ?? 'Failed to load tenants');
-
+      // 3. Load tenants via server API (applies correct role-based scoping server-side)
+      const tenantsRes = await fetch('/api/tenants');
+      if (!tenantsRes.ok) {
+        const tj = await tenantsRes.json().catch(() => ({}));
+        throw new Error(tj.error ?? 'Failed to load tenants');
+      }
+      const { tenants: tenantRows } = await tenantsRes.json();
       const rows = (tenantRows ?? []) as DbTenant[];
       setTenants(rows);
 
@@ -99,16 +103,18 @@ export default function DashboardPage() {
         return prev;
       });
 
-      const { data: charges } = await supabase
-        .from('service_charges')
-        .select('id, amount_due, amount_paid, tenant_id')
-        .eq('is_paid', false);
+      // 4. Load unpaid charges via server API (RLS on service_charges also requires assignment check)
+      try {
+        const chargesRes = await fetch('/api/charges?unpaid=true');
+        if (chargesRes.ok) {
+          const { charges: cdata } = await chargesRes.json();
+          const chargeList = (cdata ?? []) as { id: string; amount_due: number; amount_paid: number; tenant_id: string }[];
+          setUnpaidCount(chargeList.length);
+          setUnpaidTotal(chargeList.reduce((s, c) => s + (c.amount_due - c.amount_paid), 0));
+          setUnpaidItems(chargeList);
+        }
+      } catch { /* non-fatal — dashboard widgets degrade gracefully */ }
 
-      if (charges) {
-        setUnpaidCount(charges.length);
-        setUnpaidTotal(charges.reduce((s: number, c: { amount_due: number; amount_paid: number }) => s + (c.amount_due - c.amount_paid), 0));
-        setUnpaidItems(charges);
-      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load data.');
     } finally {
