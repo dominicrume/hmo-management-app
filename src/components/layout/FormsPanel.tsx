@@ -176,6 +176,14 @@ interface Props {
 export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms }: Props) {
   const handlePrint = () => window.print();
 
+  const handlePrintAllForms = () => {
+    if (!tenant) {
+      alert('Please select a tenant first to print their forms.');
+      return;
+    }
+    window.open(`/dashboard/print/forms/${tenant.id}`, '_blank');
+  };
+
   return (
     <aside
       className="w-panel min-w-panel max-w-panel bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden"
@@ -266,7 +274,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
         </button>
         <button
           type="button"
-          onClick={handlePrint}
+          onClick={handlePrintAllForms}
           className="w-full flex items-center justify-center gap-2 border-2 border-navy
                      text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
         >
