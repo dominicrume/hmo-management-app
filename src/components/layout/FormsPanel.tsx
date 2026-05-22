@@ -13,8 +13,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Brain,
 } from 'lucide-react';
 import type { DbTenant } from '@/types/database';
+
+import AIBrainPanel from '@/components/ai/AIBrainPanel';
 
 export type FormId =
   | 'personal'
@@ -25,8 +28,7 @@ export type FormId =
   | 'service'
   | 'privacy'
   | 'agreement'
-  | 'induction'
-  | 'ai-brain';
+  | 'induction'; // Removed 'ai-brain' from FormId
 
 type FormStatus = 'Complete' | 'In Progress' | 'Required' | 'Review' | '';
 
@@ -166,118 +168,152 @@ function deriveStatus(
 }
 
 interface Props {
-  activeForm:    FormId;
+  activeForm:    FormId | string;
   onSelectForm:  (form: FormId) => void;
   tenant?:       DbTenant | null;
   /** Set of form IDs that have been saved (passed from dashboard with session data) */
   completedForms?: Set<string>;
   onPrintAll?:   () => void;
+  activeTab?:    'forms' | 'ai';
+  onTabChange?:  (tab: 'forms' | 'ai') => void;
+  workerId?:     string;
 }
 
-export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms, onPrintAll }: Props) {
+export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms, onPrintAll, activeTab = 'forms', onTabChange, workerId }: Props) {
   const handlePrint = () => window.print();
 
   return (
     <aside
-      className="w-panel min-w-panel max-w-panel bg-white border-l border-slate-200 flex flex-col h-full overflow-hidden"
-      aria-label="Forms library"
+      className="w-full xl:w-[320px] min-w-[320px] max-w-full xl:max-w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full overflow-hidden"
+      aria-label="Workspace Right Panel"
     >
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <div>
-          <p className="text-xxs font-black text-slate-400 uppercase tracking-[0.15em]">
-            Different Forms
-          </p>
-          <p className="text-xxs text-slate-400 mt-0.5">Select a form to populate</p>
+      {/* Dual Tab Toggle */}
+      <div className="px-4 py-3 border-b border-slate-200 bg-white">
+        <div className="flex bg-slate-100 p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => onTabChange?.('forms')}
+            className={`flex-1 text-xs font-bold py-1.5 rounded-md transition-colors ${
+              activeTab === 'forms' ? 'bg-white shadow-sm text-navy' : 'text-slate-500 hover:text-navy'
+            }`}
+          >
+            Forms Library
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange?.('ai')}
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-bold py-1.5 rounded-md transition-colors ${
+              activeTab === 'ai' ? 'bg-navy shadow-sm text-white' : 'text-slate-500 hover:text-navy'
+            }`}
+          >
+            <Brain className="w-3.5 h-3.5" />
+            AI Brain
+          </button>
         </div>
-        <button
-          type="button"
-          className="w-7 h-7 rounded-full bg-navy/10 hover:bg-amber/20 text-navy hover:text-amber-dark
-                     flex items-center justify-center transition-colors font-bold text-sm"
-          aria-label="Add new form"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
       </div>
 
-      {/* Form list */}
-      <ul className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-        {FORMS.map((form) => {
-          const isActive = form.id === activeForm;
-          const liveStatus = deriveStatus(form.id, tenant, completedForms) || form.status;
-          return (
-            <li key={form.id}>
-              <button
-                type="button"
-                onClick={() => onSelectForm(form.id)}
-                className={`
-                  w-full text-left p-3 rounded-xl border transition-all duration-150
-                  ${isActive
-                    ? 'bg-navy border-navy shadow-md text-white'
-                    : 'bg-white border-slate-200 hover:border-amber/50 hover:shadow-sm'
-                  }
-                `}
-                aria-current={isActive ? 'true' : undefined}
-              >
-                <div className="flex items-start gap-2.5">
-                  <span
-                    className={`p-1.5 rounded-lg flex-shrink-0
-                      ${isActive ? 'bg-white/10 text-amber' : 'bg-slate-100 text-navy'}`}
+      {activeTab === 'ai' ? (
+        <div className="flex-1 overflow-hidden">
+          {tenant && workerId ? (
+            <AIBrainPanel tenant={tenant} workerId={workerId} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-center px-6">
+              <p className="text-sm text-slate-400">Tenant context required to use the AI Brain.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div>
+              <p className="text-xxs font-black text-slate-400 uppercase tracking-[0.15em]">
+                Required Documents
+              </p>
+              <p className="text-xxs text-slate-400 mt-0.5">Select a form to populate</p>
+            </div>
+          </div>
+
+          {/* Form list */}
+          <ul className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-slate-50">
+            {FORMS.map((form) => {
+              const isActive = form.id === activeForm;
+              const liveStatus = deriveStatus(form.id, tenant, completedForms) || form.status;
+              return (
+                <li key={form.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectForm(form.id)}
+                    className={`
+                      w-full flex items-start gap-3 p-4 border rounded-xl text-left transition-all
+                      ${isActive
+                        ? 'bg-amber-500 border-amber-500 text-navy font-bold shadow-xl shadow-amber-500/20'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-amber-500 hover:shadow-lg'
+                      }
+                    `}
+                    aria-current={isActive ? 'true' : undefined}
                   >
-                    {form.icon}
-                  </span>
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`p-1.5 rounded-lg flex-shrink-0
+                          ${isActive ? 'bg-white/10 text-amber' : 'bg-slate-100 text-navy'}`}
+                      >
+                        {form.icon}
+                      </span>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <p className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-navy'}`}>
-                        {form.title}
-                      </p>
-                      {liveStatus === 'Complete' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                      )}
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-navy'}`}>
+                            {form.title}
+                          </p>
+                          {liveStatus === 'Complete' && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          )}
+                        </div>
 
-                    <p className={`text-xxs leading-tight ${isActive ? 'text-white/60' : 'text-slate-400'}`}>
-                      {form.desc}
-                    </p>
+                        <p className={`text-xxs leading-tight ${isActive ? 'text-white/60' : 'text-slate-400'}`}>
+                          {form.desc}
+                        </p>
 
-                    {liveStatus && liveStatus !== 'Complete' && (
-                      <div className="mt-1.5">
-                        <StatusBadge status={liveStatus} active={isActive} />
+                        {liveStatus && liveStatus !== 'Complete' && (
+                          <div className="mt-1.5">
+                            <StatusBadge status={liveStatus} active={isActive} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-      {/* Print actions */}
-      <div className="border-t border-slate-100 px-3 py-4 space-y-2">
-        <button
-          type="button"
-          onClick={handlePrint}
-          className="w-full flex items-center justify-center gap-2 bg-navy text-white
-                     py-2.5 rounded-lg text-xs font-bold hover:bg-navy-light transition-colors"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print Active Form
-        </button>
-        <button
-          type="button"
-          onClick={onPrintAll}
-          className="w-full flex items-center justify-center gap-2 border-2 border-navy
-                     text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print All Forms
-        </button>
-        <p className="text-center text-xxs text-slate-400 font-semibold uppercase tracking-widest pt-1">
-          Export as Encrypted PDF (ISO 32000)
-        </p>
-      </div>
+          {/* Print actions */}
+          <div className="border-t border-slate-100 px-3 py-4 space-y-2 bg-white">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="w-full flex items-center justify-center gap-2 bg-navy text-white
+                         py-2.5 rounded-lg text-xs font-bold hover:bg-navy-light transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print Active Form
+            </button>
+            <button
+              type="button"
+              onClick={onPrintAll}
+              className="w-full flex items-center justify-center gap-2 border-2 border-navy
+                         text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print All Forms
+            </button>
+            <p className="text-center text-xxs text-slate-400 font-semibold uppercase tracking-widest pt-1">
+              Export as Encrypted PDF (ISO 32000)
+            </p>
+          </div>
+        </>
+      )}
     </aside>
   );
 }

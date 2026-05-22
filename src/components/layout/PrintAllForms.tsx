@@ -12,7 +12,7 @@ import Form08SupportPlan           from '@/components/forms/Form08SupportPlan';
 import {
   TextField, TextareaField, SelectField, FormSection
 } from '@/components/forms/FormField';
-import { Brand } from './LetterheadSwitcher';
+import { Brand, BRANDS } from './LetterheadSwitcher';
 
 interface HousingFormData {
   licence_date:        string;
@@ -64,17 +64,18 @@ function PrintHousingBenefitForm({ tenant }: { tenant: DbTenant }) {
 
 export default function PrintAllForms({ tenant, brand }: { tenant: DbTenant, brand: Brand }) {
   const noop = () => {};
+  const activeBrand = BRANDS.find((b) => b.id === brand) ?? BRANDS[0];
   
   const PageBreak = () => <div className="break-after-page my-8 border-b-2 border-dashed border-slate-300 print:border-none" />;
 
   const LetterHead = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="flex justify-between items-start pb-6 mb-8 border-b-4" style={{ borderColor: brand.color }}>
+    <div className="flex justify-between items-start pb-6 mb-8 border-b-4" style={{ borderColor: activeBrand.accentColor }}>
       <div>
-        <h2 className="text-2xl font-black text-navy tracking-tight uppercase" style={{ color: brand.color }}>
-          {brand.name}
+        <h2 className="text-2xl font-black text-navy tracking-tight uppercase" style={{ color: activeBrand.accentColor }}>
+          {activeBrand.label}
         </h2>
         <p className="text-xxs text-slate-400 font-semibold tracking-widest uppercase mt-1">
-          {brand.tagline}
+          {activeBrand.subtitle}
         </p>
       </div>
       <div className="text-right">
@@ -94,7 +95,7 @@ export default function PrintAllForms({ tenant, brand }: { tenant: DbTenant, bra
       <LetterHead title={title} subtitle={subtitle} />
       <div className="flex items-start justify-between mb-8">
         <div>
-          <div className="inline-block text-xxs font-black uppercase tracking-widest px-2.5 py-1 rounded-sm mb-2" style={{ backgroundColor: `${brand.color}20`, color: brand.color }}>
+          <div className="inline-block text-xxs font-black uppercase tracking-widest px-2.5 py-1 rounded-sm mb-2" style={{ backgroundColor: `${activeBrand.accentColor}20`, color: activeBrand.accentColor }}>
             {title}
           </div>
           <p className="text-xxs text-slate-400">{subtitle}</p>

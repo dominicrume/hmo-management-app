@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [isPrintingAll, setIsPrintingAll]     = useState(false);
   const [adminModal,     setAdminModal]     = useState<DbTenant | null>(null);
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
+  const [rightPanelTab,  setRightPanelTab]  = useState<'forms'|'ai'>('forms');
 
   const supabase = createBrowserClient();
 
@@ -133,7 +134,10 @@ export default function DashboardPage() {
     const formParam   = searchParams.get('form') as FormId | null;
     if (tenantParam) {
       const found = tenants.find((t) => t.id === tenantParam);
-      if (found) setActiveTenant(found);
+      if (found) {
+        setActiveTenant(found);
+        setActiveNav(`tenant:${found.id}`);
+      }
     }
     if (formParam) {
       setActiveForm(formParam);
@@ -158,15 +162,35 @@ export default function DashboardPage() {
       router.push('/intake/new');
       return;
     }
+    
+    if (id === 'ai') {
+      if (activeTenant) {
+        setActiveNav(`tenant:${activeTenant.id}`);
+        setRightPanelTab('ai');
+      } else {
+        setActiveNav('ai');
+      }
+      return;
+    }
+
     setActiveNav(id);
-    if (id === 'ai-brain') setActiveForm('ai-brain');
-    // Clicking any non-form nav resets active form to personal for next form visit
-    if (!FULL_WIDTH_VIEWS.has(id)) setActiveForm(id as FormId);
-  }, [router]);
+    
+    if (!FULL_WIDTH_VIEWS.has(id)) {
+      if (id.startsWith('tenant:')) {
+        // If clicking a tenant and not explicitly asking for a form, default to personal
+        setActiveForm('personal');
+        setRightPanelTab('forms');
+      } else {
+        setActiveForm(id as FormId);
+      }
+    } else if (id === 'tenants') {
+      setTenantPanelOpen(true);
+    }
+  }, [router, activeTenant]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const handlePrintAllForms = () => {
@@ -210,22 +234,18 @@ export default function DashboardPage() {
           </Suspense>
         );
 
-      case 'ai-brain':
+      case 'ai':
         return (
           <main className="flex-1 overflow-hidden bg-white flex flex-col">
-            {activeTenant && currentUser ? (
-              <AIBrainPanel tenant={activeTenant} workerId={currentUser.id} />
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-                <div className="w-16 h-16 rounded-2xl bg-amber/10 flex items-center justify-center">
-                  <Brain className="w-8 h-8 text-amber" />
-                </div>
-                <div>
-                  <p className="text-navy font-bold text-sm mb-1">Select a Tenant to use the AI Brain</p>
-                  <p className="text-slate-400 text-xs">Choose a tenant from the list on the left to load their context into the AI Brain.</p>
-                </div>
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
+              <div className="w-16 h-16 rounded-2xl bg-amber/10 flex items-center justify-center">
+                <Brain className="w-8 h-8 text-amber" />
               </div>
-            )}
+              <div>
+                <p className="text-navy font-bold text-sm mb-1">Select a Tenant to use the AI Brain</p>
+                <p className="text-slate-400 text-xs">Choose a tenant from the list on the left to load their context into the AI Brain.</p>
+              </div>
+            </div>
           </main>
         );
       case 'sessions':
@@ -319,10 +339,13 @@ export default function DashboardPage() {
             </div>
             <div className="no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white order-first xl:order-last max-h-[300px] xl:max-h-full overflow-y-auto">
               <FormsPanel
+                activeTab={rightPanelTab}
+                onTabChange={setRightPanelTab}
+                workerId={currentUser?.id}
                 activeForm={activeForm}
                 onSelectForm={(id) => {
                   setActiveForm(id);
-                  setActiveNav(id === 'ai-brain' ? 'ai-brain' : activeNav);
+                  setActiveNav(activeNav); // Keep the tenant active
                 }}
                 tenant={activeTenant}
                 onPrintAll={handlePrintAllForms}

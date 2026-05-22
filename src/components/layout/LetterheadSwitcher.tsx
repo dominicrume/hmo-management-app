@@ -5,7 +5,7 @@ import { ChevronDown, Check } from 'lucide-react';
 
 export type Brand = 'mattys_place' | 'ash_shahada' | 'reliance';
 
-interface BrandConfig {
+export interface BrandConfig {
   id: Brand;
   label: string;
   subtitle: string;
@@ -13,7 +13,7 @@ interface BrandConfig {
   textColor: string;
 }
 
-const BRANDS: BrandConfig[] = [
+export const BRANDS: BrandConfig[] = [
   {
     id: 'mattys_place',
     label: "Matty's Place",

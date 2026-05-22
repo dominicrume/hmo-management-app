@@ -143,7 +143,6 @@ const FORM_TITLES: Record<FormId, string> = {
   privacy:    'Confidentiality Waiver — Form 5',
   agreement:  'Support Checklist — Form 2',
   induction:  'Admission Checklist — Form 1',
-  'ai-brain': 'AI Brain',
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -265,22 +264,7 @@ export default function FormWorkspace({
     setIsDictating(true);
   };
 
-  // ── AI Brain — full-height panel, no letterhead ───────────────────────────
-
-  if (activeForm === 'ai-brain') {
-    return (
-      <main className="flex-1 overflow-hidden bg-white">
-        {activeTenantObj && workerId
-          ? <AIBrainPanel tenant={activeTenantObj} workerId={workerId} />
-          : (
-            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-              Select a tenant to use the AI Brain.
-            </div>
-          )
-        }
-      </main>
-    );
-  }
+  // (AI Brain has been moved to the right sidebar, so no need for full screen override here)
 
   const t = activeTenantObj;
 
@@ -427,24 +411,24 @@ export default function FormWorkspace({
 
   return (
     <main
-      className="form-workspace flex-1 overflow-y-auto bg-cream px-8 py-6"
+      className="form-workspace flex-1 overflow-y-auto bg-cream px-2 py-4 md:px-8 md:py-6"
       data-brand={brand}
     >
       <div
         className="max-w-3xl mx-auto bg-white shadow-lg rounded-sm border border-slate-200
-                   min-h-[1056px] p-12"
+                   min-h-[1056px] p-4 sm:p-6 md:p-12"
       >
         {/* ── Letterhead ── */}
-        <div className="flex justify-between items-start pb-6 mb-8 brand-border-bottom">
+        <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-4 sm:gap-0 pb-6 mb-8 brand-border-bottom">
           <div>
-            <h2 className="text-2xl font-black text-navy tracking-tight uppercase">
+            <h2 className="text-xl sm:text-2xl font-black text-navy tracking-tight uppercase">
               {lh.name}
             </h2>
             <p className="text-xxs text-slate-400 font-semibold tracking-widest uppercase mt-1">
               {lh.tagline}
             </p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="text-xxs font-mono font-semibold text-slate-400 uppercase">
               {lh.formRef}-{activeTenantObj ? activeTenantObj.id.slice(-4).toUpperCase() : 'NEW'}
             </p>
@@ -456,7 +440,7 @@ export default function FormWorkspace({
         </div>
 
         {/* ── Form title bar ── */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-0 mb-8">
           <div>
             <div className="brand-badge inline-block text-xxs font-black uppercase tracking-widest
                             px-2 py-1 rounded mb-3">
