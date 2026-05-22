@@ -19,10 +19,32 @@ export async function POST() {
       .from('users')
       .select('id, role')
       .eq('auth_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return NextResponse.json({ ok: true, user: existing, created: false });
+    }
+
+    // Check if a users row already exists by email and link auth_id if so
+    if (user.email) {
+      const { data: existingByEmail } = await svc
+        .from('users')
+        .select('*')
+        .eq('email', user.email.toLowerCase())
+        .maybeSingle();
+
+      if (existingByEmail) {
+        const { data: updated, error: updateErr } = await svc
+          .from('users')
+          .update({ auth_id: user.id })
+          .eq('id', existingByEmail.id)
+          .select()
+          .single();
+
+        if (updateErr) throw new Error(updateErr.message);
+
+        return NextResponse.json({ ok: true, user: updated, created: false });
+      }
     }
 
     // Security: only auto-create a Manager if no Manager users exist yet.

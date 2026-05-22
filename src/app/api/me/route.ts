@@ -17,18 +17,46 @@ export async function GET() {
     }
 
     // Use service client so RLS doesn't block the lookup
-    const { data: dbUser, error } = await svc
+    let { data: dbUser, error } = await svc
       .from('users')
       .select('*')
       .eq('auth_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // PGRST116 = no row found
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'NO_PROFILE', auth_id: user.id, email: user.email }, { status: 404 });
-      }
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // If no row found by auth_id, check if a row exists with the same email.
+    // If so, update its auth_id to link it.
+    if (!dbUser && user.email) {
+      const { data: byEmail, error: emailErr } = await svc
+        .from('users')
+        .select('*')
+        .eq('email', user.email.toLowerCase())
+        .maybeSingle();
+
+      if (emailErr) {
+        return NextResponse.json({ error: emailErr.message }, { status: 500 });
+      }
+
+      if (byEmail) {
+        const { data: updated, error: updateErr } = await svc
+          .from('users')
+          .update({ auth_id: user.id })
+          .eq('id', byEmail.id)
+          .select()
+          .single();
+
+        if (updateErr) {
+          return NextResponse.json({ error: `Failed to link auth ID: ${updateErr.message}` }, { status: 500 });
+        }
+        dbUser = updated;
+      }
+    }
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'NO_PROFILE', auth_id: user.id, email: user.email }, { status: 404 });
     }
 
     return NextResponse.json({ user: dbUser });
