@@ -25,11 +25,11 @@ export async function GET(request: Request) {
     // Test query users count
     const { data: users, error: usersErr } = await svc
       .from('users')
-      .select('id, email, role');
+      .select('id, email, role, auth_id');
     results.queries.users = {
       count: users?.length ?? 0,
       error: usersErr ? { message: usersErr.message, code: usersErr.code } : null,
-      data: users ? users.map(u => ({ id: u.id, email: u.email, role: u.role })) : null
+      data: users ? users.map(u => ({ id: u.id, email: u.email, role: u.role, auth_id: u.auth_id })) : null
     };
 
     // Test query tenants count
