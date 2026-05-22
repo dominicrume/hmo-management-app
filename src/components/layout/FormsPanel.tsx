@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   User,
   FileText,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   Clock,
   Brain,
+  ChevronDown,
 } from 'lucide-react';
 import type { DbTenant } from '@/types/database';
 
@@ -181,6 +183,15 @@ interface Props {
 
 export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms, onPrintAll, activeTab = 'forms', onTabChange, workerId }: Props) {
   const handlePrint = () => window.print();
+  const [showPrintActions, setShowPrintActions] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth >= 1024) {
+        setShowPrintActions(true);
+      }
+    }
+  }, []);
 
   return (
     <aside
@@ -213,7 +224,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
       </div>
 
       {activeTab === 'ai' ? (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {tenant && workerId ? (
             <AIBrainPanel tenant={tenant} workerId={workerId} />
           ) : (
@@ -245,7 +256,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
                     type="button"
                     onClick={() => onSelectForm(form.id)}
                     className={`
-                      w-full flex items-start gap-3 p-4 border rounded-xl text-left transition-all
+                      w-full flex items-start gap-2 sm:gap-3 p-3 sm:p-4 border rounded-xl text-left transition-all
                       ${isActive
                         ? 'bg-amber-500 border-amber-500 text-navy font-bold shadow-xl shadow-amber-500/20 active:scale-[0.98]'
                         : 'bg-white border-slate-200 text-slate-700 hover:border-amber-500 hover:shadow-lg active:scale-[0.98]'
@@ -253,7 +264,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
                     `}
                     aria-current={isActive ? 'true' : undefined}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2 sm:gap-2.5 w-full">
                       <span
                         className={`p-1.5 rounded-lg flex-shrink-0
                           ${isActive ? 'bg-white/10 text-amber' : 'bg-slate-100 text-navy'}`}
@@ -289,28 +300,44 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
           </ul>
 
           {/* Print actions */}
-          <div className="border-t border-slate-100 px-3 py-4 space-y-2 bg-white">
+          <div className="border-t border-slate-100 bg-white">
             <button
               type="button"
-              onClick={handlePrint}
-              className="w-full flex items-center justify-center gap-2 bg-navy text-white
-                         py-2.5 rounded-lg text-xs font-bold hover:bg-navy-light transition-colors"
+              onClick={() => setShowPrintActions(!showPrintActions)}
+              className="w-full px-4 py-2.5 flex items-center justify-between text-xxs font-black text-navy uppercase tracking-wider hover:bg-slate-50 transition-colors"
             >
-              <Printer className="w-3.5 h-3.5" />
-              Print Active Form
+              <span className="flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-slate-400" />
+                Print &amp; Export Options
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${showPrintActions ? 'rotate-180' : ''}`} />
             </button>
-            <button
-              type="button"
-              onClick={onPrintAll}
-              className="w-full flex items-center justify-center gap-2 border-2 border-navy
-                         text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Print All Forms
-            </button>
-            <p className="text-center text-xxs text-slate-400 font-semibold uppercase tracking-widest pt-1">
-              Export as Encrypted PDF (ISO 32000)
-            </p>
+
+            {showPrintActions && (
+              <div className="px-3 pb-4 pt-1 space-y-2 border-t border-slate-50">
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="w-full flex items-center justify-center gap-2 bg-navy text-white
+                             py-2.5 rounded-lg text-xs font-bold hover:bg-navy-light transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Print Active Form
+                </button>
+                <button
+                  type="button"
+                  onClick={onPrintAll}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-navy
+                             text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Print All Forms
+                </button>
+                <p className="text-center text-xxs text-slate-400 font-semibold uppercase tracking-widest pt-1">
+                  Export as Encrypted PDF (ISO 32000)
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -329,7 +329,7 @@ export default function DashboardPage() {
         // Any form nav — show the form workspace + forms panel
         // Viewport Optimization: Desktop gets side-by-side, mobile gets forms panel at the top (or hidden)
         return (
-          <div className={`flex-1 min-w-0 flex flex-col h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
+          <div className={`flex-1 min-w-0 flex flex-col min-h-0 ${isPrintingAll ? 'print:hidden' : ''}`}>
             {/* Mobile Viewport Segmented Tab Switcher */}
             <div className="xl:hidden no-print px-4 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
               <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
             Official Use Only — Restricted Access
           </span>
           <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-            V2.6.0
+            V2.7.0
           </span>
         </div>
 
