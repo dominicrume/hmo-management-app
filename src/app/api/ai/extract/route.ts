@@ -10,7 +10,8 @@ import { EXTRACT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, async (req: NextRequest) => {
   const body = await req.json();
   const err  = firstError(validate(body, {
-    text: { type: 'string', required: true, minLength: 5 },
+    text:      { type: 'string', required: true, minLength: 5 },
+    tenant_id: { type: 'uuid' },
   }));
   if (err) return apiBadRequest(err);
 
@@ -35,7 +36,21 @@ export const POST = withApi({ permission: 'ai:use', rateLimit: 'aiBrain' }, asyn
     return apiBadRequest('AI returned unparseable output — try again');
   }
 
-  return apiOk({ data });
+  // Remove empty strings so we don't overwrite good data with empties
+  const cleanData: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v && v.trim() !== '') {
+      cleanData[k] = v;
+    }
+  }
+
+  if (body.tenant_id && Object.keys(cleanData).length > 0) {
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const svc = createServiceClient();
+    await svc.from('tenants').update(cleanData).eq('id', body.tenant_id);
+  }
+
+  return apiOk({ data: cleanData });
 });
 
 export async function GET() {

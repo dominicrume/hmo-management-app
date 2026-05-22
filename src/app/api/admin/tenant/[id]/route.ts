@@ -186,8 +186,23 @@ export async function DELETE(
     }
 
     // ── Hard-delete the tenant record and all related rows ───────────────────
-    // Cascade deletes (sessions, service_charges, verifications) depend on
-    // the DB foreign key ON DELETE CASCADE. If not set, delete children first.
+    // First, delete child records manually if ON DELETE CASCADE is not set on the DB schema.
+    await svc.from('worker_tenant_assignments').delete().eq('tenant_id', tenantId);
+    
+    // Delete all form data related to this tenant
+    const formTables = [
+      'form01_intake', 'form02_support', 'form03_personal', 'form04_missing',
+      'form05_privacy', 'form06_service', 'form07_risk', 'form08_admission'
+    ];
+    for (const table of formTables) {
+      await svc.from(table).delete().eq('tenant_id', tenantId);
+    }
+
+    // Note: audit_logs and blockchain_stamps should ideally be retained for compliance.
+    // If audit_logs.tenant_id enforces an FK, we nullify it to retain the log without blocking tenant deletion.
+    await svc.from('audit_logs').update({ tenant_id: null }).eq('tenant_id', tenantId);
+
+    // Now delete the tenant
     const { error: deleteErr } = await svc
       .from('tenants')
       .delete()

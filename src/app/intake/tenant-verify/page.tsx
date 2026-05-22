@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { stampAuditOnChain } from '@/lib/blockchain';
 import {
   CheckCircle2, AlertTriangle, ChevronRight, ArrowLeft,
@@ -29,11 +28,18 @@ export default function TenantVerifyPage() {
     const tenantId = sessionStorage.getItem('intake_tenant_id');
     if (!tenantId) { router.replace('/intake/new'); return; }
 
-    const supabase = createBrowserClient();
-    supabase.from('tenants').select('*').eq('id', tenantId).single()
-      .then(({ data, error: e }: { data: DbTenant | null; error: { message: string } | null }) => {
-        if (e || !data) { setError('Could not load tenant record.'); }
-        else            { setTenant(data as DbTenant); }
+    fetch(`/api/tenants/${tenantId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error || !data.id) {
+          setError('Could not load tenant record.');
+        } else {
+          setTenant(data as DbTenant);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Could not load tenant record.');
         setLoading(false);
       });
   }, [router]);
@@ -101,7 +107,6 @@ export default function TenantVerifyPage() {
     setError('');
 
     try {
-      const supabase   = createBrowserClient();
       const sigData    = getSignatureDataUrl();
       const signedAt   = new Date().toISOString();
 
@@ -122,23 +127,19 @@ export default function TenantVerifyPage() {
         console.warn("Blockchain stamp skipped (no wallet or failed):", err);
       }
 
-      // Save verification record
-      const { error: verifyErr } = await supabase.from('tenant_verifications').insert({
-        tenant_id:          tenant.id,
-        verified_by_tenant: true,
-        verification_type:  'digital_signature',
-        signature_data:     sigData,
-        signed_at:          signedAt,
+      const res = await fetch('/api/intake/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenant.id,
+          signature_data: sigData,
+          document_hash: documentHash,
+          signed_at: signedAt
+        })
       });
-      if (verifyErr) throw verifyErr;
 
-      // Mark confidentiality signed on tenants row
-      const { error: updateErr } = await supabase
-        .from('tenants')
-        .update({ confidentiality_signed: true, confidentiality_signed_at: signedAt })
-        .eq('id', tenant.id);
-      if (updateErr) throw updateErr;
-
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to save verification');
 
       router.push('/intake/complete');
     } catch (e: unknown) {

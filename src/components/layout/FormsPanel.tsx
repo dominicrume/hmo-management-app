@@ -171,9 +171,10 @@ interface Props {
   tenant?:       DbTenant | null;
   /** Set of form IDs that have been saved (passed from dashboard with session data) */
   completedForms?: Set<string>;
+  onPrintAll?:   () => void;
 }
 
-export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms }: Props) {
+export default function FormsPanel({ activeForm, onSelectForm, tenant, completedForms, onPrintAll }: Props) {
   const handlePrint = () => window.print();
 
   return (
@@ -266,7 +267,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
         </button>
         <button
           type="button"
-          onClick={handlePrint}
+          onClick={onPrintAll}
           className="w-full flex items-center justify-center gap-2 border-2 border-navy
                      text-navy py-2.5 rounded-lg text-xs font-bold hover:bg-navy/5 transition-colors"
         >

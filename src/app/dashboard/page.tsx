@@ -9,6 +9,7 @@ import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, User
 import { Sidebar }      from '@/components/sidebar';
 import LetterheadSwitcher, { type Brand } from '@/components/layout/LetterheadSwitcher';
 import FormsPanel,      { type FormId }   from '@/components/layout/FormsPanel';
+import PrintAllForms    from '@/components/layout/PrintAllForms';
 import FormWorkspace    from '@/components/layout/FormWorkspace';
 import AdminRecordModal from '@/components/modals/AdminRecordModal';
 import AIBrainPanel     from '@/components/ai/AIBrainPanel';
@@ -47,6 +48,7 @@ export default function DashboardPage() {
   const [unpaidItems,    setUnpaidItems]    = useState<{ id: string; amount_due: number; amount_paid: number; tenant_id: string }[]>([]);
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
   const [tenantPanelOpen, setTenantPanelOpen] = useState(false);
+  const [isPrintingAll, setIsPrintingAll]     = useState(false);
   const [adminModal,     setAdminModal]     = useState<DbTenant | null>(null);
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
 
@@ -165,6 +167,14 @@ export default function DashboardPage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const handlePrintAllForms = () => {
+    setIsPrintingAll(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrintingAll(false);
+    }, 150);
   };
 
   // ── Filtered tenant list ───────────────────────────────────────────────────
@@ -294,17 +304,20 @@ export default function DashboardPage() {
         );
       default:
         // Any form nav — show the form workspace + forms panel
+        // Viewport Optimization: Desktop gets side-by-side, mobile gets forms panel at the top (or hidden)
         return (
-          <>
-            <FormWorkspace
-              brand={activeBrand}
-              activeForm={activeForm}
-              activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
-              activeTenantObj={activeTenant}
-              workerId={currentUser?.id}
-              onSaved={loadData}
-            />
-            <div className="no-print">
+          <div className={`flex flex-col xl:flex-row h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
+            <div className="flex-1 overflow-y-auto min-w-0">
+              <FormWorkspace
+                brand={activeBrand}
+                activeForm={activeForm}
+                activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
+                activeTenantObj={activeTenant}
+                workerId={currentUser?.id}
+                onSaved={loadData}
+              />
+            </div>
+            <div className="no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white order-first xl:order-last max-h-[300px] xl:max-h-full overflow-y-auto">
               <FormsPanel
                 activeForm={activeForm}
                 onSelectForm={(id) => {
@@ -312,9 +325,10 @@ export default function DashboardPage() {
                   setActiveNav(id === 'ai-brain' ? 'ai-brain' : activeNav);
                 }}
                 tenant={activeTenant}
+                onPrintAll={handlePrintAllForms}
               />
             </div>
-          </>
+          </div>
         );
     }
   };
@@ -323,12 +337,12 @@ export default function DashboardPage() {
     <div className="flex h-screen overflow-hidden bg-cream font-sans">
 
       {/* ── Mobile sidebar overlay ── */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${
+          sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* ── Sidebar — collapsible on mobile ── */}
       <div className={`
@@ -653,15 +667,22 @@ export default function DashboardPage() {
           </aside>
 
           {/* Mobile tenant panel overlay */}
-          {tenantPanelOpen && (
-            <div
-              className="fixed inset-0 bg-black/30 z-20 lg:hidden"
-              onClick={() => setTenantPanelOpen(false)}
-            />
-          )}
+          <div
+            className={`fixed inset-0 bg-black/30 z-20 lg:hidden transition-opacity duration-300 ${
+              tenantPanelOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+            onClick={() => setTenantPanelOpen(false)}
+          />
 
           {/* ── Main content area — switches by activeNav ──────────────────── */}
           {renderCenter()}
+
+          {/* ── Hidden Print All Forms View ────────────────────────────────── */}
+          {isPrintingAll && activeTenant && (
+            <div className="hidden print:block absolute inset-0 bg-white z-50">
+              <PrintAllForms tenant={activeTenant} brand={activeBrand} />
+            </div>
+          )}
 
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Link, CheckCircle2, AlertCircle, Loader2, Printer } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Link, CheckCircle2, AlertCircle, Loader2, Printer, Mic } from 'lucide-react';
 import type { Brand } from './LetterheadSwitcher';
 import type { FormId } from './FormsPanel';
 import type { DbTenant } from '@/types/database';
@@ -171,6 +171,8 @@ export default function FormWorkspace({
 
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [errMsg, setErrMsg] = useState('');
+  const [isDictating, setIsDictating] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Central save — every form's onSubmit/onSaveDraft flows through here
   const save = useCallback(async (data: Record<string, unknown>, stamp: boolean) => {
@@ -203,6 +205,65 @@ export default function FormWorkspace({
   // (data: unknown) is assignable to every Form0X onSubmit type via contravariance
   const onSubmit = useCallback((data: unknown) => save(data as Record<string, unknown>, true),  [save]);
   const onDraft  = useCallback((data: unknown) => save(data as Record<string, unknown>, false), [save]);
+
+  const toggleDictation = () => {
+    if (isDictating) {
+      recognitionRef.current?.stop();
+      setIsDictating(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Dictation is not supported in this browser. Try Chrome or Safari.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-GB';
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+    };
+
+    recognition.onend = async () => {
+      setIsDictating(false);
+      if (!finalTranscript.trim() || !activeTenantObj) return;
+      
+      setStatus('saving');
+      try {
+        const res = await fetch('/api/ai/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: finalTranscript, tenant_id: activeTenantObj.id })
+        });
+        if (!res.ok) throw new Error('Failed to extract form fields');
+        setStatus('saved');
+        setTimeout(() => setStatus('idle'), 3000);
+        onSaved?.(); // Reloads tenant data so forms update
+      } catch (e: any) {
+        setErrMsg(e.message || 'Auto-extraction failed');
+        setStatus('error');
+      }
+    };
+
+    recognition.onerror = (e: any) => {
+      console.error('Speech error', e);
+      setIsDictating(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsDictating(true);
+  };
 
   // ── AI Brain — full-height panel, no letterhead ───────────────────────────
 
@@ -405,15 +466,29 @@ export default function FormWorkspace({
               All entries are blockchain-stamped on save. The original is preserved in the audit trail.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-slate-200
-                       rounded-lg text-xxs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
-          >
-            <Printer className="w-3 h-3" />
-            Print
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleDictation}
+              className={`no-print flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xxs font-bold transition-colors ${
+                isDictating 
+                  ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' 
+                  : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Mic className="w-3 h-3" />
+              {isDictating ? 'Listening...' : 'Dictate'}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-slate-200
+                         rounded-lg text-xxs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+            >
+              <Printer className="w-3 h-3" />
+              Print
+            </button>
+          </div>
         </div>
 
         {/* ── Save status bar ── */}
