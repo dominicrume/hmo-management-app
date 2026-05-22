@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type { Brand, TitleType, MaritalStatus, EntryMethod } from '@/types/database';
+import { COUNTRIES } from '@/lib/countries';
 
 interface FormState {
   title:           TitleType;
@@ -351,8 +352,12 @@ function StaffReviewInner() {
               </div>
               <div>
                 <label className={labelClass}>Nationality</label>
-                <input type="text" value={form.nationality} onChange={set('nationality')}
-                  placeholder="e.g. British" className={inputClass('nationality')} />
+                <select value={form.nationality} onChange={set('nationality')} className={inputClass('nationality')}>
+                  <option value="">— Select —</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label htmlFor="date_entry_uk" className={labelClass}>Date Entered UK</label>

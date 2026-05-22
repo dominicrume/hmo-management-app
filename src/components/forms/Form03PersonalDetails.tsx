@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { TextField, TextareaField, SelectField, PhoneField, FormSection, FormActions } from './FormField';
+import { COUNTRIES } from '@/lib/countries';
 
 // ── Validation helpers ────────────────────────────────────────────────────────
 
@@ -148,12 +149,12 @@ export default function Form03PersonalDetails({ initialData, ocrData, onSubmit, 
           hint="Format: AB 12 34 56 C"
           error={errors.nino}
         />
-        <TextField
+        <SelectField
           label="Nationality"
           required
           value={data.nationality}
-          onChange={set('nationality') as (v: string) => void}
-          placeholder="e.g. British, Somali"
+          onChange={set('nationality')}
+          options={COUNTRIES}
           error={errors.nationality}
         />
         <SelectField

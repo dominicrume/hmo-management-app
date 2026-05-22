@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Users, FileText, BarChart2,
   ClipboardList, Shield, CreditCard, Brain,
@@ -20,7 +20,7 @@ interface NavItem {
 }
 
 interface SidebarProps {
-  activeView: SidebarView;
+  activeView: string;
   onNavigate: (view: SidebarView) => void;
   userRole: 'Manager' | 'SupportWorker' | 'Tenant';
   tenantCount?: number;
@@ -41,8 +41,120 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings',   label: 'Settings',        icon: <Settings        className="w-4 h-4" />, managerOnly: true },
 ];
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  alpha: number;
+  size: number;
+  color: string;
+}
+
 export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCount, userName, onSignOut }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+  const animationFrameId = useRef<number | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left + e.currentTarget.scrollLeft;
+    const y = e.clientY - rect.top + e.currentTarget.scrollTop;
+    lastMousePos.current = { x, y };
+
+    // Spawn 1-2 particles per mouse move event
+    if (canvasRef.current) {
+      for (let i = 0; i < 2; i++) {
+        particlesRef.current.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: -Math.random() * 0.6 - 0.2, // Slow upward drift
+          alpha: 1.0,
+          size: Math.random() * 2 + 1,
+          color: `rgba(245, 158, 11, ${Math.random() * 0.4 + 0.2})`, // Soft warm gold
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const parent = canvas.parentElement;
+    if (!parent) return;
+
+    let width = parent.scrollWidth;
+    let height = parent.scrollHeight;
+    canvas.width = width;
+    canvas.height = height;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (canvas && parent) {
+        width = parent.scrollWidth;
+        height = parent.scrollHeight;
+        canvas.width = width;
+        canvas.height = height;
+      }
+    });
+    resizeObserver.observe(parent);
+
+    const updateAndDraw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Render follow-mouse radial gradient backdrop
+      if (isHovered) {
+        const { x, y } = lastMousePos.current;
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, 140);
+        glow.addColorStop(0, 'rgba(245, 158, 11, 0.08)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      // Draw and update drifting golden dust particles
+      const particles = particlesRef.current;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.012; // Slow fading curve
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(245, 158, 11, 0.5)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      animationFrameId.current = requestAnimationFrame(updateAndDraw);
+    };
+
+    animationFrameId.current = requestAnimationFrame(updateAndDraw);
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      resizeObserver.disconnect();
+    };
+  }, [isHovered]);
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => !item.managerOnly || userRole === 'Manager'
@@ -72,49 +184,67 @@ export function Sidebar({ activeView, onNavigate, userRole, tenantCount, riskCou
       )}
 
       {/* Nav items */}
-      <nav className="flex-1 py-3 overflow-y-auto space-y-0.5 px-2">
-        {visibleItems.map((item) => {
-          const isActive = activeView === item.id;
-          return (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              title={collapsed ? item.label : undefined}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 relative
-                ${isActive
-                  ? 'bg-amber-500 text-[#0A1628] font-bold shadow-lg shadow-amber-500/20'
-                  : 'text-slate-300 hover:text-white hover:bg-white/8 font-medium'
-                }
-              `}
-            >
-              <span className={`shrink-0 ${isActive ? 'text-[#0A1628]' : 'text-slate-400'}`}>
-                {item.icon}
-              </span>
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left truncate">{item.label}</span>
-                  {(item.badge ?? 0) > 0 && (
-                    <span className={`
-                      text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center
-                      ${isActive
-                        ? 'bg-[#0A1628]/30 text-[#0A1628]'
-                        : item.id === 'risk'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-white/10 text-white/70'
-                      }
-                    `}>
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          );
-        })}
+      <nav
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="flex-1 py-3 overflow-y-auto space-y-0.5 px-2 relative"
+      >
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full z-0 pointer-events-none"
+        />
+        <div className="relative z-10 space-y-0.5">
+          {visibleItems.map((item) => {
+            const isActive = item.id === 'tenants'
+              ? (activeView === 'tenants' || activeView.startsWith('tenant:') || [
+                  'personal', 'housing', 'support', 'missing', 'privacy', 'service', 'admission', 'intake'
+                ].includes(activeView))
+              : activeView === item.id;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                title={collapsed ? item.label : undefined}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 relative transform
+                  ${isActive
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-[#0A1628] font-bold shadow-lg shadow-amber-500/25 translate-x-1 scale-[1.01]'
+                    : 'text-slate-300 hover:text-white hover:bg-white/8 hover:translate-x-1 hover:scale-[1.01] font-medium'
+                  }
+                `}
+              >
+                {isActive && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-amber-400 rounded-r shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                )}
+                <span className={`shrink-0 ${isActive ? 'text-[#0A1628]' : 'text-slate-400'}`}>
+                  {item.icon}
+                </span>
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                    {(item.badge ?? 0) > 0 && (
+                      <span className={`
+                        text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center
+                        ${isActive
+                          ? 'bg-[#0A1628]/25 text-[#0A1628]'
+                          : item.id === 'risk'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-white/10 text-white/70'
+                        }
+                      `}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Footer — sign out + collapse */}

@@ -26,13 +26,16 @@ export async function POST() {
     }
 
     // Security: only auto-create a Manager if no Manager users exist yet.
-    // After the first Manager is created, new users must be added manually.
+    // Whitelist specific manager emails to bypass the "first manager only" rule.
     const { count: managerCount } = await svc
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('role', 'Manager');
 
-    if ((managerCount ?? 0) > 0) {
+    const whitelist = ['dominicrume@gmail.com', 'orumedominic@gmail.com'];
+    const isWhitelisted = user.email && whitelist.includes(user.email.toLowerCase());
+
+    if ((managerCount ?? 0) > 0 && !isWhitelisted) {
       return NextResponse.json(
         { error: 'A manager account already exists. Contact your administrator to create your account.' },
         { status: 403 },

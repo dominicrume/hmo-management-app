@@ -440,7 +440,7 @@ export default function DashboardPage() {
             Official Use Only — Restricted Access
           </span>
           <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-            V2.7.0
+            V2.9.0
           </span>
         </div>
 

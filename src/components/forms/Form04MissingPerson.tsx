@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { TextField, TextareaField, SelectField, PhoneField, FormSection, FormActions } from './FormField';
 import { AlertTriangle } from 'lucide-react';
+import { COUNTRIES } from '@/lib/countries';
 
 export interface Form04Data {
   // Physical descriptors
@@ -127,8 +128,8 @@ export default function Form04MissingPerson({ initialData, ocrData, onSubmit, on
         <SelectField label="Marital Status" value={data.marital_status}
           onChange={set('marital_status')}
           options={['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 'Civil Partnership']} />
-        <TextField label="Nationality" value={data.nationality}
-          onChange={set('nationality')} placeholder="e.g. British, Somali" />
+        <SelectField label="Nationality" value={data.nationality}
+          onChange={set('nationality')} options={COUNTRIES} />
         <SelectField label="Benefit Type" value={data.benefit_type}
           onChange={set('benefit_type')}
           options={['Universal Credit', 'Housing Benefit', 'PIP', 'ESA', 'JSA', 'None']} />

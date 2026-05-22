@@ -186,7 +186,17 @@ export async function DELETE(
     }
 
     // ── Hard-delete the tenant record and all related rows ───────────────────
-    // First, delete child records manually if ON DELETE CASCADE is not set on the DB schema.
+    // First, delete child records manually to satisfy ON DELETE RESTRICT constraints on the DB schema.
+    await svc.from('payment_transactions').delete().eq('tenant_id', tenantId);
+    await svc.from('service_charges').delete().eq('tenant_id', tenantId);
+    await svc.from('tenancy_agreements').delete().eq('tenant_id', tenantId);
+    await svc.from('housing_claims').delete().eq('tenant_id', tenantId);
+    await svc.from('sessions').delete().eq('tenant_id', tenantId);
+    await svc.from('tenant_verifications').delete().eq('tenant_id', tenantId);
+    await svc.from('data_subject_requests').delete().eq('tenant_id', tenantId);
+    await svc.from('consent_log').delete().eq('tenant_id', tenantId);
+    await svc.from('documents').delete().eq('tenant_id', tenantId);
+    await svc.from('notifications').delete().eq('tenant_id', tenantId);
     await svc.from('worker_tenant_assignments').delete().eq('tenant_id', tenantId);
     
     // Delete all form data related to this tenant
@@ -199,8 +209,9 @@ export async function DELETE(
     }
 
     // Note: audit_logs and blockchain_stamps should ideally be retained for compliance.
-    // If audit_logs.tenant_id enforces an FK, we nullify it to retain the log without blocking tenant deletion.
-    await svc.from('audit_logs').update({ tenant_id: null }).eq('tenant_id', tenantId);
+    // The audit_logs.tenant_id foreign key constraint is configured as ON DELETE SET NULL,
+    // which automatically nullifies tenant_id at the database level when the tenant is deleted.
+    // This bypasses the table's DO INSTEAD NOTHING update rule.
 
     // Now delete the tenant
     const { error: deleteErr } = await svc

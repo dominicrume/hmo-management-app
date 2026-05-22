@@ -43,13 +43,15 @@ export default function IntakeNewPage() {
     if (mode === 'ocr' && file) {
       // Encode file name for display; actual upload happens in ocr-review
       sessionStorage.setItem('intake_filename', file.name);
-      // Store file as base64 for ocr-review page
-      const reader = new FileReader();
-      reader.onload = () => {
-        sessionStorage.setItem('intake_file_b64', reader.result as string);
-        router.push('/intake/ocr-review');
-      };
-      reader.readAsDataURL(file);
+      // Clear legacy base64 if present to prevent quota issues
+      sessionStorage.removeItem('intake_file_b64');
+      // Store File in window memory and pass Object URL
+      if (typeof window !== 'undefined') {
+        (window as any).pendingIntakeFile = file;
+        const objectUrl = URL.createObjectURL(file);
+        sessionStorage.setItem('intake_file_url', objectUrl);
+      }
+      router.push('/intake/ocr-review');
     } else if (mode === 'voice') {
       router.push('/intake/staff-review?mode=voice');
     } else {

@@ -44,20 +44,47 @@ export default function OCRReviewPage() {
   const [edits,     setEdits]     = useState<ExtractedFields>({});
 
   useEffect(() => {
-    const b64 = sessionStorage.getItem('intake_file_b64');
     const filename = sessionStorage.getItem('intake_filename') ?? 'form.jpg';
+    let fileObj: File | Blob | null = null;
+    let urlToUse = '';
 
-    if (!b64) { router.replace('/intake/new'); return; }
-
-    if (b64.startsWith('data:image') || b64.startsWith('data:application/pdf')) {
-      setImageUrl(b64.startsWith('data:image') ? b64 : '');
+    // 1. Try to read from window memory (ideal, zero copy)
+    if (typeof window !== 'undefined' && (window as any).pendingIntakeFile) {
+      const file = (window as any).pendingIntakeFile;
+      fileObj = file;
+      urlToUse = URL.createObjectURL(file);
+      setImageUrl(file.type.startsWith('image/') ? urlToUse : '');
+    } else {
+      // 2. Fall back to local object URL
+      const objUrl = sessionStorage.getItem('intake_file_url');
+      if (objUrl) {
+        urlToUse = objUrl;
+        setImageUrl(objUrl);
+      } else {
+        // 3. Final legacy fallback to base64
+        const b64 = sessionStorage.getItem('intake_file_b64');
+        if (b64) {
+          urlToUse = b64;
+          if (b64.startsWith('data:image')) {
+            setImageUrl(b64);
+          }
+        } else {
+          router.replace('/intake/new');
+          return;
+        }
+      }
     }
 
-    // Convert base64 data URL to blob and POST to /api/ocr
     const runOCR = async () => {
       try {
-        const res = await fetch(b64);
-        const blob = await res.blob();
+        let blob: Blob;
+        if (fileObj) {
+          blob = fileObj;
+        } else {
+          const res = await fetch(urlToUse);
+          blob = await res.blob();
+        }
+
         const form = new FormData();
         form.append('file', blob, filename);
 
@@ -80,6 +107,13 @@ export default function OCRReviewPage() {
     };
 
     runOCR();
+
+    // Clean up created object URL on unmount to avoid memory leaks
+    return () => {
+      if (urlToUse && urlToUse.startsWith('blob:')) {
+        URL.revokeObjectURL(urlToUse);
+      }
+    };
   }, [router]);
 
   const handleEdit = (key: string, val: string) => {
