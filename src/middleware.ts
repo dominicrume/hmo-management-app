@@ -12,7 +12,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // ── Route classification ──────────────────────────────────────────────────────
 
-const PUBLIC_PATHS = ['/login', '/reset-password', '/auth/callback', '/api/test-db'];
+const PUBLIC_PATHS = ['/login', '/reset-password', '/auth/callback'];
 
 // Admin routes — Manager only
 const MANAGER_PATHS = ['/manager', '/api/admin'];
