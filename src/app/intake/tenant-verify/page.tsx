@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { stampAuditOnChain } from '@/lib/blockchain';
 import {
   CheckCircle2, AlertTriangle, ChevronRight, ArrowLeft,
   PenLine, RotateCcw, User
@@ -118,14 +117,7 @@ export default function TenantVerifyPage() {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const documentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      let blockchainTx = null;
-      try {
-        const result = await stampAuditOnChain(documentHash, `tenant:${tenant.id}`);
-        blockchainTx = result.transactionHash;
-        console.log("Blockchain stamp successful:", blockchainTx);
-      } catch (err) {
-        console.warn("Blockchain stamp skipped (no wallet or failed):", err);
-      }
+      // Note: Blockchain stamping is handled by the /api/intake/verify route server-side
 
       const res = await fetch('/api/intake/verify', {
         method: 'POST',

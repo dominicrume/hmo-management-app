@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
       console.error('[intake/verify] Tenant update error:', updateErr);
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
+    // Stamp on-chain
+    try {
+      const { stampRecordOnChain } = await import('@/lib/blockchain/stamp');
+      const result = await stampRecordOnChain(document_hash, `tenant:${tenant_id}`);
+      if (result.success && result.transactionHash) {
+        await svc.from('blockchain_stamps').insert({
+          payload_hash: document_hash,
+          tx_hash: result.transactionHash,
+          metadata: `verify:${tenant_id}`,
+          stamp_type: 'individual',
+        });
+      }
+    } catch (chainErr) {
+      console.warn('[intake/verify] Blockchain stamp skipped (non-fatal):', chainErr);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
