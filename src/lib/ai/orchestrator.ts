@@ -113,7 +113,7 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
   let finalResponse = '';
   let totalTokens   = 0;
   const allToolCalls: ToolCallRecord[] = [];
-  const usedModel = hasAnthropicKey ? 'claude-3-5-sonnet-20241022' : 'gpt-4o';
+  const usedModel = hasAnthropicKey ? 'claude-3-5-sonnet-20240620' : 'gpt-4o';
 
   if (hasAnthropicKey) {
     // ── Anthropic Claude path ──────────────────────────────────────────────
