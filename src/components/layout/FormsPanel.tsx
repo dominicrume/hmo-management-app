@@ -184,7 +184,7 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
 
   return (
     <aside
-      className="w-full xl:w-[320px] min-w-[320px] max-w-full xl:max-w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full overflow-hidden"
+      className="w-full xl:w-[320px] xl:min-w-[320px] min-w-0 max-w-full xl:max-w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full overflow-hidden"
       aria-label="Workspace Right Panel"
     >
       {/* Dual Tab Toggle — Hidden on mobile because the page-level tab switcher handles it */}

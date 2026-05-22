@@ -124,6 +124,9 @@ export async function middleware(request: NextRequest) {
   // ── Not authenticated — redirect to login ──────────────────────────────────
 
   if (!user) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    }
     const loginUrl = new URL('/login', request.url);
     // Preserve the intended destination for post-login redirect
     if (pathname !== '/dashboard') {
@@ -148,6 +151,9 @@ export async function middleware(request: NextRequest) {
   if (!isActive) {
     // Sign out the deactivated user and redirect to login
     await supabase.auth.signOut();
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Account deactivated' }, { status: 403 });
+    }
     return NextResponse.redirect(
       new URL('/login?error=account_deactivated', request.url)
     );
@@ -157,17 +163,26 @@ export async function middleware(request: NextRequest) {
 
   // /manager/* and /api/admin/* — Manager only
   if (MANAGER_PATHS.some((p) => pathname.startsWith(p)) && role !== 'Manager') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // /portal/* — Tenant only
   if (TENANT_PATHS.some((p) => pathname.startsWith(p)) && role !== 'Tenant') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // ── Intake flow — only Manager or SupportWorker ─────────────────────────────
 
   if (pathname.startsWith('/intake') && role === 'Tenant') {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

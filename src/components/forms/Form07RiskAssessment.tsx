@@ -131,7 +131,7 @@ export default function Form07RiskAssessment({ initialData, onSubmit, onSaveDraf
                   </span>
                 </div>
                 {entry.present && (
-                  <div className="pl-7 grid grid-cols-2 gap-3">
+                  <div className="pl-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">Severity</label>
                       <select

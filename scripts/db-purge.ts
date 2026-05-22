@@ -12,8 +12,8 @@ const supabaseUrl = extractEnv('NEXT_PUBLIC_SUPABASE_URL');
 const supabaseKey = extractEnv('SUPABASE_SERVICE_ROLE_KEY');
 
 const adminSupabase = createClient(supabaseUrl, supabaseKey);
-const TEMP_EMAIL = 'temp_purge_admin@vorem.com';
-const TEMP_PASSWORD = 'TempPassword123!@#';
+const TEMP_EMAIL = `temp_purge_${Math.random().toString(36).substring(2)}@vorem.com`;
+const TEMP_PASSWORD = `Temp_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2).toUpperCase()}!@#9`;
 
 async function purgeTable(table: string) {
   console.log(`Purging ${table}...`);

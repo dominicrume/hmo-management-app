@@ -329,7 +329,7 @@ export default function DashboardPage() {
         // Any form nav — show the form workspace + forms panel
         // Viewport Optimization: Desktop gets side-by-side, mobile gets forms panel at the top (or hidden)
         return (
-          <div className={`flex flex-col h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
+          <div className={`flex-1 min-w-0 flex flex-col h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
             {/* Mobile Viewport Segmented Tab Switcher */}
             <div className="xl:hidden no-print px-4 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
               <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -402,7 +402,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-cream font-sans">
+    <div className="flex h-dvh overflow-hidden bg-cream font-sans">
 
       {/* ── Mobile sidebar overlay ── */}
       <div
@@ -440,11 +440,11 @@ export default function DashboardPage() {
             Official Use Only — Restricted Access
           </span>
           <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-            V2.4.0
+            V2.5.0
           </span>
         </div>
 
-        {/* ── Top header — V2.4.0 style ─────────────────────────────────── */}
+        {/* ── Top header — V2.5.0 style ─────────────────────────────────── */}
         <header className="no-print h-12 bg-white border-b border-slate-200 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-10 flex-shrink-0">
 
           {/* Mobile hamburger */}

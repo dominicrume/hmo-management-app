@@ -223,7 +223,7 @@ export function FormSection({
         <span className="w-1 h-3.5 bg-amber rounded-full inline-block flex-shrink-0" />
         Section {number} — {title}
       </h3>
-      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
         {children}
       </div>
     </div>

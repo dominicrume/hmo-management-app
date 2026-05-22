@@ -232,7 +232,7 @@ export default function Form08SupportPlan({
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="col-span-2 space-y-1">
                   <label className="text-xxs font-black text-slate-400 uppercase tracking-wider">Goal <span className="text-red-400">*</span></label>
                   <input type="text" value={goal.goal}

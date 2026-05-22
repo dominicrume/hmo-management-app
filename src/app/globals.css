@@ -33,6 +33,7 @@
   /* Full-page flex layout collapses so form fills the page */
   body > * > *,
   .flex.h-screen,
+  .flex.h-dvh,
   .flex.flex-col.flex-1 {
     display: block !important;
     overflow: visible !important;

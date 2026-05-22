@@ -143,7 +143,7 @@ export default function AIBrainPanel({ tenant, workerId }: Props) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
 
         {/* Session Questions */}
         <div className="px-4 py-3 border-b border-slate-100 bg-amber/5 flex-shrink-0">
