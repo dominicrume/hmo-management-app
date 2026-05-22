@@ -109,51 +109,24 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
   // ── 4. Build message list ─────────────────────────────────────────────────
   const userContent = `${contextBlock}${ragBlock}\n\n---\n\nTask: ${params.task}`;
 
-  // ── 5. Call Anthropic (preferred) or OpenAI ───────────────────────────────
+  // ── 5. Call OpenAI ───────────────────────────────
   let finalResponse = '';
   let totalTokens   = 0;
   const allToolCalls: ToolCallRecord[] = [];
-  const usedModel = hasAnthropicKey ? 'claude-3-5-sonnet-20240620' : 'gpt-4o';
+  const usedModel = 'gpt-4o';
 
-  if (hasAnthropicKey) {
-    // ── Anthropic Claude path ──────────────────────────────────────────────
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // ── OpenAI path ────────────────────────────────────────────────────────
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const anthropicMessages: Anthropic.MessageParam[] = [
-      ...pastTurns.map((t): Anthropic.MessageParam => ({
-        role:    t.role as 'user' | 'assistant',
-        content: t.content,
-      })),
-      { role: 'user', content: userContent },
-    ];
-
-    const response = await anthropic.messages.create({
-      model:      usedModel,
-      max_tokens: 2048,
-      system:     BRAIN_SYSTEM_PROMPT,
-      messages:   anthropicMessages,
-    });
-
-    finalResponse = response.content
-      .filter((c) => c.type === 'text')
-      .map((c) => (c as { type: 'text'; text: string }).text)
-      .join('\n');
-    totalTokens = (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0);
-
-  } else {
-    // ── OpenAI path ────────────────────────────────────────────────────────
-    const OpenAI = (await import('openai')).default;
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: BRAIN_SYSTEM_PROMPT },
-      ...pastTurns.map((t): OpenAI.Chat.ChatCompletionMessageParam => ({
-        role:    t.role as 'user' | 'assistant',
-        content: t.content,
-      })),
-      { role: 'user', content: userContent },
-    ];
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: BRAIN_SYSTEM_PROMPT },
+    ...pastTurns.map((t): OpenAI.Chat.ChatCompletionMessageParam => ({
+      role:    t.role as 'user' | 'assistant',
+      content: t.content,
+    })),
+    { role: 'user', content: userContent },
+  ];
 
     let response = await openai.chat.completions.create({
       model:       usedModel,
@@ -185,7 +158,6 @@ export async function runAITask(params: OrchestratorParams): Promise<Orchestrato
       assistantMessage = choice.message;
     }
     finalResponse = assistantMessage.content ?? '';
-  }
 
   const CLAUDE_BRAIN_MODEL = usedModel;
 
