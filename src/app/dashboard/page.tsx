@@ -156,6 +156,17 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [supabase, loadData]);
 
+  // ── Print Lifecycle listener ───────────────────────────────────────────────
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPrintingAll(false);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   // ── Navigation handler ─────────────────────────────────────────────────────
 
   const handleNavigate = useCallback((id: string) => {
@@ -192,7 +203,11 @@ export default function DashboardPage() {
   }, [router, activeTenant]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Sign out error:', e);
+    }
     window.location.href = '/login';
   };
 
@@ -200,8 +215,7 @@ export default function DashboardPage() {
     setIsPrintingAll(true);
     setTimeout(() => {
       window.print();
-      setIsPrintingAll(false);
-    }, 150);
+    }, 800);
   };
 
   // ── Filtered tenant list ───────────────────────────────────────────────────
@@ -440,7 +454,7 @@ export default function DashboardPage() {
             Official Use Only — Restricted Access
           </span>
           <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-            V2.9.0
+            V2.9.1
           </span>
         </div>
 
@@ -747,7 +761,7 @@ export default function DashboardPage() {
 
           {/* ── Hidden Print All Forms View ────────────────────────────────── */}
           {isPrintingAll && activeTenant && (
-            <div className="hidden print:block absolute inset-0 bg-white z-50">
+            <div className="hidden print:block absolute inset-0 bg-white z-50 print-all-overlay">
               <PrintAllForms tenant={activeTenant} brand={activeBrand} />
             </div>
           )}

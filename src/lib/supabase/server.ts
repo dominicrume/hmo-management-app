@@ -9,6 +9,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -56,8 +57,6 @@ export function createClient() {
 // NEVER expose service-role operations to the client.
 
 export function createServiceClient() {
-  const cookieStore = cookies();
-
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
       '[SECURITY] Missing SUPABASE_SERVICE_ROLE_KEY. ' +
@@ -65,26 +64,14 @@ export function createServiceClient() {
     );
   }
 
-  return createServerClient(
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
-      cookies: {
-        getAll()             { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, {
-                ...options,
-                httpOnly: true,
-                secure: isProduction,
-                sameSite: 'lax',
-                path: '/',
-              })
-            );
-          } catch { /* Server Component — handled by middleware */ }
-        },
-      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
     }
   );
 }

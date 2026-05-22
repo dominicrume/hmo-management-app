@@ -24,10 +24,46 @@
   /* Page setup */
   @page { size: A4; margin: 15mm 15mm 20mm 15mm; }
 
+  /* Collapse flex layout and overflow containers to avoid clipping page breaks */
+  html, body, 
+  div, header, main, aside, section, article {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
   html, body {
     background: white !important;
     font-size: 11pt;
     color: #0F1C2E;
+  }
+
+  /* Ensure the container of print forms is positioned statically to break pages */
+  .print-all-overlay {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    z-index: auto !important;
+  }
+  
+  .print-all-container {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Page breaks */
+  .break-after-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
   }
 
   /* Full-page flex layout collapses so form fills the page */
