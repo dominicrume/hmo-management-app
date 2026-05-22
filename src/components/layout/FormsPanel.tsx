@@ -247,8 +247,8 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
                     className={`
                       w-full flex items-start gap-3 p-4 border rounded-xl text-left transition-all
                       ${isActive
-                        ? 'bg-amber-500 border-amber-500 text-navy font-bold shadow-xl shadow-amber-500/20'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-amber-500 hover:shadow-lg'
+                        ? 'bg-amber-500 border-amber-500 text-navy font-bold shadow-xl shadow-amber-500/20 active:scale-[0.98]'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-amber-500 hover:shadow-lg active:scale-[0.98]'
                       }
                     `}
                     aria-current={isActive ? 'true' : undefined}

@@ -337,7 +337,7 @@ export default function DashboardPage() {
                 onSaved={loadData}
               />
             </div>
-            <div className="no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white order-first xl:order-last max-h-[300px] xl:max-h-full overflow-y-auto">
+            <div className="no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white order-first xl:order-last h-[50vh] xl:h-full flex flex-col">
               <FormsPanel
                 activeTab={rightPanelTab}
                 onTabChange={setRightPanelTab}

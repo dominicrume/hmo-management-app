@@ -29,6 +29,7 @@
     "@capacitor/cli": "^8.3.4",
     "@capacitor/ios": "^8.3.4",
     "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
