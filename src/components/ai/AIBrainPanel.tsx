@@ -317,7 +317,7 @@ export default function AIBrainPanel({ tenant, workerId }: Props) {
           </button>
         </div>
         <p className="text-xxs text-slate-400 mt-1.5 text-center">
-          Claude claude-sonnet-4-6 · Responses stored in audit trail · Shift+Enter for new line
+          OpenAI gpt-4o · Responses stored in audit trail · Shift+Enter for new line
         </p>
       </div>
     </div>

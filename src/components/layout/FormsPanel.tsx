@@ -187,8 +187,8 @@ export default function FormsPanel({ activeForm, onSelectForm, tenant, completed
       className="w-full xl:w-[320px] min-w-[320px] max-w-full xl:max-w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full overflow-hidden"
       aria-label="Workspace Right Panel"
     >
-      {/* Dual Tab Toggle */}
-      <div className="px-4 py-3 border-b border-slate-200 bg-white">
+      {/* Dual Tab Toggle — Hidden on mobile because the page-level tab switcher handles it */}
+      <div className="hidden xl:block px-4 py-3 border-b border-slate-200 bg-white">
         <div className="flex bg-slate-100 p-1 rounded-lg">
           <button
             type="button"

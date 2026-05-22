@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users, MoreVertical, Brain } from 'lucide-react';
+import { Search, Bell, Link, ChevronRight, Loader2, AlertTriangle, X, Menu, Users, MoreVertical, Brain, FileText } from 'lucide-react';
 
 import { Sidebar }      from '@/components/sidebar';
 import LetterheadSwitcher, { type Brand } from '@/components/layout/LetterheadSwitcher';
@@ -52,6 +52,7 @@ export default function DashboardPage() {
   const [adminModal,     setAdminModal]     = useState<DbTenant | null>(null);
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
   const [rightPanelTab,  setRightPanelTab]  = useState<'forms'|'ai'>('forms');
+  const [mobileTab,      setMobileTab]      = useState<'editor' | 'forms' | 'ai'>('editor');
 
   const supabase = createBrowserClient();
 
@@ -167,6 +168,7 @@ export default function DashboardPage() {
       if (activeTenant) {
         setActiveNav(`tenant:${activeTenant.id}`);
         setRightPanelTab('ai');
+        setMobileTab('ai');
       } else {
         setActiveNav('ai');
       }
@@ -174,6 +176,7 @@ export default function DashboardPage() {
     }
 
     setActiveNav(id);
+    setMobileTab('editor');
     
     if (!FULL_WIDTH_VIEWS.has(id)) {
       if (id.startsWith('tenant:')) {
@@ -326,30 +329,72 @@ export default function DashboardPage() {
         // Any form nav — show the form workspace + forms panel
         // Viewport Optimization: Desktop gets side-by-side, mobile gets forms panel at the top (or hidden)
         return (
-          <div className={`flex flex-col xl:flex-row h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
-            <div className="flex-1 overflow-y-auto min-w-0">
-              <FormWorkspace
-                brand={activeBrand}
-                activeForm={activeForm}
-                activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
-                activeTenantObj={activeTenant}
-                workerId={currentUser?.id}
-                onSaved={loadData}
-              />
+          <div className={`flex flex-col h-full ${isPrintingAll ? 'print:hidden' : ''}`}>
+            {/* Mobile Viewport Segmented Tab Switcher */}
+            <div className="xl:hidden no-print px-4 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('editor')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-black py-2 rounded-lg transition-all ${
+                    mobileTab === 'editor' ? 'bg-white shadow-sm text-navy' : 'text-slate-500 hover:text-navy'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Editor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('forms')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-black py-2 rounded-lg transition-all ${
+                    mobileTab === 'forms' ? 'bg-white shadow-sm text-navy' : 'text-slate-500 hover:text-navy'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Forms Library
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('ai')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-black py-2 rounded-lg transition-all ${
+                    mobileTab === 'ai' ? 'bg-navy shadow-sm text-white' : 'text-slate-500 hover:text-navy'
+                  }`}
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  AI Brain
+                </button>
+              </div>
             </div>
-            <div className="no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white order-first xl:order-last h-[50vh] xl:h-full flex flex-col">
-              <FormsPanel
-                activeTab={rightPanelTab}
-                onTabChange={setRightPanelTab}
-                workerId={currentUser?.id}
-                activeForm={activeForm}
-                onSelectForm={(id) => {
-                  setActiveForm(id);
-                  setActiveNav(activeNav); // Keep the tenant active
-                }}
-                tenant={activeTenant}
-                onPrintAll={handlePrintAllForms}
-              />
+
+            {/* Split layout: side-by-side on desktop (xl), tab-switched on mobile */}
+            <div className="flex-1 flex flex-col xl:flex-row min-h-0 overflow-hidden">
+              <div className={`flex-1 overflow-y-auto min-w-0 ${mobileTab === 'editor' ? 'block' : 'hidden xl:block'}`}>
+                <FormWorkspace
+                  brand={activeBrand}
+                  activeForm={activeForm}
+                  activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
+                  activeTenantObj={activeTenant}
+                  workerId={currentUser?.id}
+                  onSaved={loadData}
+                />
+              </div>
+              <div className={`no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex-col h-full ${mobileTab !== 'editor' ? 'flex' : 'hidden xl:flex'}`}>
+                <FormsPanel
+                  activeTab={mobileTab === 'editor' ? rightPanelTab : (mobileTab as 'forms' | 'ai')}
+                  onTabChange={(tab) => {
+                    setRightPanelTab(tab);
+                    setMobileTab(tab);
+                  }}
+                  workerId={currentUser?.id}
+                  activeForm={activeForm}
+                  onSelectForm={(id) => {
+                    setActiveForm(id);
+                    setMobileTab('editor'); // Automatically focus back to editor once form is selected!
+                  }}
+                  tenant={activeTenant}
+                  onPrintAll={handlePrintAllForms}
+                />
+              </div>
             </div>
           </div>
         );

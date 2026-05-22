@@ -2,18 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 
 const envLocal = fs.readFileSync('.env.local', 'utf-8');
-const extractEnv = (key: string) => {
+const extractEnv = (key: string): string => {
   const match = envLocal.match(new RegExp(`^${key}=(.*)$`, 'm'));
-  return match ? match[1].trim() : null;
+  if (!match) throw new Error(`Missing environment variable: ${key}`);
+  return match[1].trim();
 };
 
 const supabaseUrl = extractEnv('NEXT_PUBLIC_SUPABASE_URL');
 const supabaseKey = extractEnv('SUPABASE_SERVICE_ROLE_KEY');
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing Supabase credentials.");
-  process.exit(1);
-}
 
 const adminSupabase = createClient(supabaseUrl, supabaseKey);
 const TEMP_EMAIL = 'temp_purge_admin@vorem.com';
