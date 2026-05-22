@@ -378,7 +378,7 @@ export default function DashboardPage() {
                   onSaved={loadData}
                 />
               </div>
-              <div className={`no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex-col h-full ${mobileTab !== 'editor' ? 'flex' : 'hidden xl:flex'}`}>
+              <div className={`no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex-col flex-1 xl:h-full min-h-0 ${mobileTab !== 'editor' ? 'flex' : 'hidden xl:flex'}`}>
                 <FormsPanel
                   activeTab={mobileTab === 'editor' ? rightPanelTab : (mobileTab as 'forms' | 'ai')}
                   onTabChange={(tab) => {
@@ -440,7 +440,7 @@ export default function DashboardPage() {
             Official Use Only — Restricted Access
           </span>
           <span className="text-xxs font-mono font-semibold text-slate-500 uppercase tracking-widest">
-            V2.5.0
+            V2.6.0
           </span>
         </div>
 
