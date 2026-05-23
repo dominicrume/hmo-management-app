@@ -68,6 +68,7 @@ function validate(d: Form04Data): Record<string, string> {
 }
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form04Data>;
   ocrData?: Partial<Form04Data>;
   onSubmit: (data: Form04Data) => void;
@@ -75,7 +76,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-export default function Form04MissingPerson({ initialData, ocrData, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form04MissingPerson({ isSaving, initialData, ocrData, onSubmit, onSaveDraft, readOnly }: Props) {
   const [data, setData]     = useState<Form04Data>({ ...EMPTY, ...initialData, ...ocrData });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -179,6 +180,7 @@ export default function Form04MissingPerson({ initialData, ocrData, onSubmit, on
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(data) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Save Missing Person Record"

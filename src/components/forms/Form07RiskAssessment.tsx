@@ -65,13 +65,14 @@ const SEVERITY_COLOURS: Record<string, string> = {
 };
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form07Data>;
   onSubmit: (data: Form07Data) => void;
   onSaveDraft?: (data: Form07Data) => void;
   readOnly?: boolean;
 }
 
-export default function Form07RiskAssessment({ initialData, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form07RiskAssessment({ isSaving, initialData, onSubmit, onSaveDraft, readOnly }: Props) {
   const [risks, setRisks]             = useState<Record<RiskCategoryId, RiskEntry>>(
     (initialData?.risks as Record<RiskCategoryId, RiskEntry>) ?? { ...EMPTY_RISKS }
   );
@@ -234,6 +235,7 @@ export default function Form07RiskAssessment({ initialData, onSubmit, onSaveDraf
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(buildData()) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Complete Risk Assessment"

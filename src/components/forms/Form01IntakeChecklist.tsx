@@ -67,6 +67,7 @@ export interface Form01Data {
 }
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form01Data>;
   onSubmit: (data: Form01Data) => void;
   onSaveDraft?: (data: Form01Data) => void;
@@ -85,14 +86,13 @@ function validate(data: Form01Data): Record<string, string> {
   return errors;
 }
 
-export default function Form01IntakeChecklist({ initialData, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form01IntakeChecklist({ isSaving, initialData, onSubmit, onSaveDraft, readOnly }: Props) {
   const [items, setItems] = useState<Record<string, boolean>>(
     initialData?.items ?? Object.fromEntries(CHECKLIST_ITEMS.map((i) => [i.id, false]))
   );
   const [completedBy, setCompletedBy] = useState(initialData?.completedBy ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-
+  
   const buildData = (): Form01Data => ({
     items,
     completedBy,
@@ -101,9 +101,7 @@ export default function Form01IntakeChecklist({ initialData, onSubmit, onSaveDra
 
   const handleSubmit = () => {
     const errs = validate(buildData());
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setSubmitting(true);
-    onSubmit(buildData());
+    if (Object.keys(errs).length) { setErrors(errs); return; }    onSubmit(buildData());
   };
 
   const allChecked = CHECKLIST_ITEMS.every((i) => items[i.id]);
@@ -183,7 +181,7 @@ export default function Form01IntakeChecklist({ initialData, onSubmit, onSaveDra
           onSaveDraft={onSaveDraft ? () => onSaveDraft(buildData()) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Confirm Checklist"
-          submitting={submitting}
+          submitting={isSaving}
         />
       )}
     </div>

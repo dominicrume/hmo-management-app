@@ -84,6 +84,7 @@ const EMPTY: Form03Data = {
 };
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form03Data>;
   /** Called when OCR populates fields — merges extracted values */
   ocrData?: Partial<Form03Data>;
@@ -92,19 +93,16 @@ interface Props {
   readOnly?: boolean;
 }
 
-export default function Form03PersonalDetails({ initialData, ocrData, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form03PersonalDetails({ isSaving, initialData, ocrData, onSubmit, onSaveDraft, readOnly }: Props) {
   const [data, setData]     = useState<Form03Data>({ ...EMPTY, ...initialData, ...ocrData });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-
+  
   const set = (field: keyof Form03Data) => (v: string | boolean) =>
     setData((prev) => ({ ...prev, [field]: v }));
 
   const handleSubmit = () => {
     const errs = validate(data);
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setSubmitting(true);
-    onSubmit(data);
+    if (Object.keys(errs).length) { setErrors(errs); return; }    onSubmit(data);
   };
 
   const isNonUK = data.nationality.toLowerCase() !== 'british' &&
@@ -322,7 +320,7 @@ export default function Form03PersonalDetails({ initialData, ocrData, onSubmit, 
           onSaveDraft={onSaveDraft ? () => onSaveDraft(data) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Save & Stamp Record"
-          submitting={submitting}
+          submitting={isSaving}
         />
       )}
     </div>

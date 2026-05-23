@@ -9,11 +9,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function check() {
   const { data, error } = await supabase
     .from('tenants')
-    .select('id, full_name, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5);
+    .select('*')
+    .order('created_at', { ascending: false });
   
   if (error) console.error(error);
   else console.log(data);
 }
 check();
+

@@ -244,7 +244,7 @@ export function FormActions({
   submitting?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3 pt-6 mt-4 border-t border-slate-100">
+    <div className="print:hidden flex items-center justify-end gap-3 pt-6 mt-4 border-t border-slate-100">
       {onSaveDraft && (
         <button
           type="button"

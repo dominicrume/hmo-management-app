@@ -62,6 +62,7 @@ function validate(d: Form05Data): Record<string, string> {
 }
 
 interface Props {
+  isSaving?: boolean;
   residentName?: string;   // pre-filled from Form 3
   onSubmit: (data: Form05Data) => void;
   onSaveDraft?: (data: Form05Data) => void;
@@ -70,7 +71,7 @@ interface Props {
 }
 
 export default function Form05ConfidentialityWaiver({
-  residentName, onSubmit, onSaveDraft, readOnly, tenantView,
+  isSaving, residentName, onSubmit, onSaveDraft, readOnly, tenantView,
 }: Props) {
   const [data, setData] = useState<Form05Data>({
     ...EMPTY,
@@ -216,6 +217,7 @@ export default function Form05ConfidentialityWaiver({
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(data) : undefined}
           onSubmit={tenantView ? handleResidentSign : handleSubmit}
           submitLabel={tenantView ? 'Sign & Confirm' : 'Save Signed Waiver'}

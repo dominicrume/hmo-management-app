@@ -122,9 +122,9 @@ export default function DashboardPage() {
     } catch (e: unknown) {
       if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
         setTenants([
-          { id: 't-001', full_name: 'Mr David Okafor', room_number: '4', benefit_type: 'Universal Credit', benefit_amount: 680 } as DbTenant,
-          { id: 't-002', full_name: 'Mrs Fatima Al-Hassan', room_number: '7', benefit_type: 'Housing Benefit', benefit_amount: 520 } as DbTenant,
-          { id: 't-003', full_name: 'Mr James Thornton', room_number: '12', benefit_type: 'ESA', benefit_amount: 340 } as DbTenant,
+          { id: 't-001', full_name: 'Mr David Okafor', room_number: '4', benefit_type: 'Universal Credit', benefit_amount: 680 } as unknown as DbTenant,
+          { id: 't-002', full_name: 'Mrs Fatima Al-Hassan', room_number: '7', benefit_type: 'Housing Benefit', benefit_amount: 520 } as unknown as DbTenant,
+          { id: 't-003', full_name: 'Mr James Thornton', room_number: '12', benefit_type: 'ESA', benefit_amount: 340 } as unknown as DbTenant,
         ]);
         setError('');
       } else {

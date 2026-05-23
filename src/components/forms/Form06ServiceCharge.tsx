@@ -55,6 +55,7 @@ function calcMonthly(weekly: string) {
 }
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form06Data>;
   tenantName?: string;
   onSubmit: (data: Form06Data) => void;
@@ -62,7 +63,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-export default function Form06ServiceCharge({ initialData, tenantName, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form06ServiceCharge({ isSaving, initialData, tenantName, onSubmit, onSaveDraft, readOnly }: Props) {
   const [data, setData]     = useState<Form06Data>({ ...EMPTY, ...initialData, tenant_name: tenantName ?? initialData?.tenant_name ?? '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -188,6 +189,7 @@ export default function Form06ServiceCharge({ initialData, tenantName, onSubmit,
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(data) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Confirm Agreement & Stamp"

@@ -78,6 +78,7 @@ function validate(d: Form08Data): Record<string, string> {
 }
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form08Data>;
   tenantName?: string;
   dob?: string;
@@ -88,7 +89,7 @@ interface Props {
 }
 
 export default function Form08SupportPlan({
-  initialData, tenantName, dob, nino, onSubmit, onSaveDraft, readOnly,
+  isSaving, initialData, tenantName, dob, nino, onSubmit, onSaveDraft, readOnly,
 }: Props) {
   const [data, setData] = useState<Form08Data>({
     ...EMPTY,
@@ -294,6 +295,7 @@ export default function Form08SupportPlan({
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(data) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Save Support Plan"

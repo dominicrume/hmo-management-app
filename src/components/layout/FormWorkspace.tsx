@@ -37,9 +37,10 @@ interface HousingFormData {
 }
 
 function HousingBenefitForm({
-  tenant, onSubmit, onSaveDraft,
+  tenant, isSaving, onSubmit, onSaveDraft,
 }: {
   tenant:       DbTenant;
+  isSaving?:    boolean;
   onSubmit:     (data: unknown) => void;
   onSaveDraft:  (data: unknown) => void;
 }) {
@@ -107,6 +108,7 @@ function HousingBenefitForm({
           if (Object.keys(errs).length) { setErrors(errs); return; }
           onSubmit(data);
         }}
+        submitting={isSaving}
         submitLabel="Save & Stamp Claim"
       />
     </div>
@@ -156,12 +158,13 @@ interface Props {
   activeTenantObj?: DbTenant | null;
   workerId?:        string;
   onSaved?:         () => void;
+  onPrintAll?:      () => void;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function FormWorkspace({
-  brand, activeForm, activeTenant, activeTenantObj, workerId, onSaved,
+  brand, activeForm, activeTenant, activeTenantObj, workerId, onSaved, onPrintAll,
 }: Props) {
   const lh    = LETTERHEAD[brand];
   const today = new Date().toLocaleDateString('en-GB', {
@@ -287,6 +290,7 @@ export default function FormWorkspace({
         return (
           <Form03PersonalDetails
             key={key}
+            isSaving={status === 'saving'}
             initialData={{
               title:             t.title,
               full_name:         t.full_name,
@@ -321,6 +325,7 @@ export default function FormWorkspace({
         return (
           <Form04MissingPerson
             key={key}
+            isSaving={status === 'saving'}
             initialData={{
               place_of_birth:       t.place_of_birth      ?? '',
               marital_status:       t.marital_status      ?? '',
@@ -337,6 +342,7 @@ export default function FormWorkspace({
         return (
           <Form05ConfidentialityWaiver
             key={key}
+            isSaving={status === 'saving'}
             residentName={t.full_name}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
@@ -347,6 +353,7 @@ export default function FormWorkspace({
         return (
           <Form06ServiceCharge
             key={key}
+            isSaving={status === 'saving'}
             tenantName={t.full_name}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
@@ -357,6 +364,7 @@ export default function FormWorkspace({
         return (
           <Form07RiskAssessment
             key={key}
+            isSaving={status === 'saving'}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
           />
@@ -366,6 +374,7 @@ export default function FormWorkspace({
         return (
           <Form08SupportPlan
             key={key}
+            isSaving={status === 'saving'}
             tenantName={t.full_name}
             dob={t.dob}
             nino={t.nino}
@@ -378,6 +387,7 @@ export default function FormWorkspace({
         return (
           <Form02SupportChecklist
             key={key}
+            isSaving={status === 'saving'}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
           />
@@ -387,6 +397,7 @@ export default function FormWorkspace({
         return (
           <Form01IntakeChecklist
             key={key}
+            isSaving={status === 'saving'}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
           />
@@ -396,6 +407,7 @@ export default function FormWorkspace({
         return (
           <HousingBenefitForm
             key={key}
+            isSaving={status === 'saving'}
             tenant={t}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
@@ -465,12 +477,18 @@ export default function FormWorkspace({
             </button>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                if (onPrintAll) {
+                  onPrintAll();
+                } else {
+                  window.print();
+                }
+              }}
               className="no-print flex items-center gap-1.5 px-3 py-1.5 border border-slate-200
                          rounded-lg text-xxs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
             >
               <Printer className="w-3 h-3" />
-              Print
+              Print All Forms
             </button>
           </div>
         </div>

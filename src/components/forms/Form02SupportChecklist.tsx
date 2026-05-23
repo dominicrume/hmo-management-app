@@ -54,6 +54,7 @@ function validate(data: Form02Data): Record<string, string> {
 }
 
 interface Props {
+  isSaving?: boolean;
   initialData?: Partial<Form02Data>;
   onSubmit: (data: Form02Data) => void;
   onSaveDraft?: (data: Form02Data) => void;
@@ -92,7 +93,7 @@ function CheckGroup({
   );
 }
 
-export default function Form02SupportChecklist({ initialData, onSubmit, onSaveDraft, readOnly }: Props) {
+export default function Form02SupportChecklist({ isSaving, initialData, onSubmit, onSaveDraft, readOnly }: Props) {
   const [onArrival,   setOnArrival]   = useState(initialData?.onArrival   ?? initChecks(ON_ARRIVAL));
   const [within3Days, setWithin3Days] = useState(initialData?.within3Days ?? initChecks(WITHIN_3_DAYS));
   const [after3Days,  setAfter3Days]  = useState(initialData?.after3Days  ?? initChecks(AFTER_3_DAYS));
@@ -172,6 +173,7 @@ export default function Form02SupportChecklist({ initialData, onSubmit, onSaveDr
 
       {!readOnly && (
         <FormActions
+          submitting={isSaving}
           onSaveDraft={onSaveDraft ? () => onSaveDraft(buildData()) : undefined}
           onSubmit={handleSubmit}
           submitLabel="Save Checklist"
