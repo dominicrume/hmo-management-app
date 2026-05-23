@@ -1,52 +1,44 @@
-# AI Engineering Rules
-
-You are assisting in building an enterprise-grade AI + blockchain application.
-
-Rules:
-- Use clean architecture
-- Use TypeScript
-- Use reusable components
-- Keep files modular
-- Never expose secrets
-- Optimize for scalability
-- Keep mobile responsive
-- Use simple comments
-- Explain difficult logic clearly
-- Follow enterprise engineering standards
-
-
-# CLAUDE.md — Matty's Place
-## You are building: Matty's Place
-HMO tenant management system for General Matlub, Birmingham UK.
-Read /docs/PWD.md for full product requirements.
-Read /docs/DESIGN.md for all UI/UX specifications.
-Read /docs/URD.md for role-based access rules.
+# Matty's Place AI Briefing (CLAUDE.md)
 
 ## Tech Stack
-Frontend:   Next.js 14 (App Router), React, TypeScript
-Styling:    Tailwind CSS — use DESIGN.md colour tokens
-Database:   Supabase (PostgreSQL) — see /supabase/schema.sql
-Auth:       Supabase Auth with Row Level Security
-Fonts:      Sora + JetBrains Mono (Google Fonts)
-Deploy:     Google Cloud Run
+- Next.js 14.2 App Router
+- React 18
+- Supabase SSR (Auth, Postgres DB)
+- TypeScript
+- Tailwind CSS
 
-## Coding Rules
-- NEVER hardcode tenant data — all data via intake pipeline
-- EVERY save stamps: user name, role, timestamp, input method
-- Forms must match /specs/forms/ specs exactly — field by field
-- Three user roles: Manager / SupportWorker / Tenant (see URD.md)
-- Blockchain stamp = SHA-256 hash in audit_logs table (Phase 1)
-- All colours from DESIGN.md tokens — navy #0F1C2E, amber #E8A84C
+## Design Tokens (MUST use exactly)
+- Primary: #0F1C2E (Navy)
+- Accent: #E8A84C (Amber)
+- Canvas: #F8F4EF (Warm Cream)
+- Surface: #FFFFFF (White)
 
-## Never Do
-- Never use Lorem Ipsum — use realistic HMO field values
-- Never skip audit trail on any save operation
-- Never show tenant data to wrong role (RLS enforced)
-- Never use inline styles — use Tailwind classes
+## Three Brands
+1. Matty's Place
+2. Ash Shahada Housing Association Ltd
+3. Reliance Housing
 
-## File Locations
-- Components → src/components/[name]/index.tsx
-- Pages → src/app/[route]/page.tsx  
-- DB types → src/types/database.ts
-- Supabase client → src/lib/supabase.ts
+## Three User Roles
+1. Manager (full access)
+2. SupportWorker (assigned tenants only)
+3. Tenant (read own record + sign only)
 
+## 8 Governing Lessons
+1. Truth Over Assumption — diagnose with evidence first.
+2. One Source of Truth — UI and DB must agree.
+3. One Change at a Time — no broad hardening passes without commits.
+4. Save Before You Change — commit often.
+5. One Module, One Job — separate concerns.
+6. Secrets Only in `.env` — no hardcoded keys.
+7. Build Environment Around the Model — maintain governance files.
+8. Small Explained Steps — explain before running.
+
+## Never-Do Rules
+- DO NOT run broad refactorings across multiple domains without checking in.
+- DO NOT change colors to generic Tailwind blues or reds.
+- DO NOT bypass RLS implicitly in client components.
+
+## File Structure & DB Tables
+- `/src/components/forms` — Contains the 8 core operational forms.
+- `/src/app/dashboard` — Main app shell layout.
+- Tables: `users`, `tenants`, `forms`, `audit_logs`.
