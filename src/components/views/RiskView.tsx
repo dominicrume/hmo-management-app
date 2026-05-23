@@ -15,6 +15,7 @@ interface FlaggedSession {
   entry_method: string;
   created_at: string;
   users?: { full_name: string };
+  tenants?: { full_name: string; room_number: string };
 }
 
 interface Props {
@@ -119,8 +120,12 @@ export default function RiskView({ activeTenant, tenants }: Props) {
                 >
                   <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-navy">{fmtDate(s.session_date)}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-navy truncate">
+                        {s.tenants?.full_name ?? activeTenant?.full_name ?? 'Unknown tenant'}
+                      </span>
+                      <span className="text-xxs text-slate-400">·</span>
+                      <span className="text-xs font-medium text-slate-500">{fmtDate(s.session_date)}</span>
                       <span className="text-xxs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">
                         {s.session_type.replace('_', ' ')}
                       </span>

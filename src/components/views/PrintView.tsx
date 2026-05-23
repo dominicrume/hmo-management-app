@@ -18,8 +18,8 @@ export default function PrintView({ tenants, activeTenant }: Props) {
   const [dateTo,     setDateTo]     = useState('');
   const [loading,    setLoading]    = useState(false);
   const [report,     setReport]     = useState<string | null>(null);
-  type ReportSession = { session_date: string; session_type: string; users?: { full_name?: string }; notes?: string; ai_risk_flag: boolean; ai_risk_note?: string };
-  type ReportCharge  = { period_start: string; period_end: string; amount_due: number; amount_paid: number; payment_method: string; is_paid: boolean };
+  type ReportSession = { session_date: string; session_type: string; users?: { full_name?: string }; tenants?: { full_name?: string; room_number?: string }; notes?: string; ai_risk_flag: boolean; ai_risk_note?: string };
+  type ReportCharge  = { period_start: string; period_end: string; amount_due: number; amount_paid: number; payment_method: string; is_paid: boolean; tenants?: { full_name?: string; room_number?: string } };
   const [reportData, setReportData] = useState<{
     meta:      { title: string; from: string; to: string; generated: string; tenant: string };
     sessions:  ReportSession[];
@@ -64,13 +64,17 @@ export default function PrintView({ tenants, activeTenant }: Props) {
         fetch(`/api/charges?${qs}`).then((r) => r.json()),
       ]);
 
-      const sessions = Array.isArray(sessionsRes) ? sessionsRes.filter((s: { session_date: string }) =>
-        s.session_date >= from && s.session_date <= to
-      ) : [];
+      // /api/charges returns { charges, data }; /api/sessions returns a bare array
+      const sessionsList = Array.isArray(sessionsRes) ? sessionsRes : [];
+      const chargesList  = Array.isArray(chargesRes) ? chargesRes : (chargesRes?.charges ?? chargesRes?.data ?? []);
 
-      const charges = Array.isArray(chargesRes) ? chargesRes.filter((c: { period_start: string; period_end: string }) =>
+      const sessions = sessionsList.filter((s: { session_date: string }) =>
+        s.session_date >= from && s.session_date <= to
+      );
+
+      const charges = chargesList.filter((c: { period_start: string; period_end: string }) =>
         c.period_start >= from && c.period_end <= to
-      ) : [];
+      );
 
       const tenant = tenantId ? tenants.find((t) => t.id === tenantId) : null;
       const totalDue  = charges.reduce((s: number, c: { amount_due: number }) => s + c.amount_due, 0);
@@ -87,20 +91,20 @@ export default function PrintView({ tenants, activeTenant }: Props) {
         '─────────────────────────────────────────',
         `SESSIONS (${sessions.length})`,
         '─────────────────────────────────────────',
-        ...sessions.map((s: { session_date: string; session_type: string; ai_risk_flag: boolean; notes: string | null }) =>
-          `[${s.session_date}] ${s.session_type.toUpperCase()}${s.ai_risk_flag ? ' ⚠ RISK' : ''}\n${s.notes ?? 'No notes.'}`
+        ...sessions.map((s: { session_date: string; session_type: string; ai_risk_flag: boolean; notes: string | null; tenants?: { full_name?: string } }) =>
+          `[${s.session_date}] ${s.session_type.toUpperCase()}${!tenant && s.tenants?.full_name ? ` — ${s.tenants.full_name}` : ''}${s.ai_risk_flag ? ' ⚠ RISK' : ''}\n${s.notes ?? 'No notes.'}`
         ),
         '',
         '─────────────────────────────────────────',
         `SERVICE CHARGES (${charges.length} records)`,
         `Total Due: £${totalDue.toFixed(2)} | Paid: £${totalPaid.toFixed(2)} | Outstanding: £${(totalDue - totalPaid).toFixed(2)}`,
         '─────────────────────────────────────────',
-        ...charges.map((c: { period_start: string; period_end: string; amount_due: number; amount_paid: number; is_paid: boolean; payment_method: string }) =>
-          `${c.period_start} → ${c.period_end}: £${c.amount_due.toFixed(2)} due · ${c.is_paid ? '✓ Paid' : '✗ UNPAID'} (${c.payment_method})`
+        ...charges.map((c: { period_start: string; period_end: string; amount_due: number; amount_paid: number; is_paid: boolean; payment_method: string; tenants?: { full_name?: string } }) =>
+          `${!tenant && c.tenants?.full_name ? `${c.tenants.full_name} · ` : ''}${c.period_start} → ${c.period_end}: £${c.amount_due.toFixed(2)} due · ${c.is_paid ? '✓ Paid' : '✗ UNPAID'} (${c.payment_method})`
         ),
         '',
         `RISK FLAGS: ${riskFlags.length}`,
-        ...riskFlags.map((s: { session_date: string; ai_risk_note: string | null }) => `  ⚠ ${s.session_date}: ${s.ai_risk_note ?? 'Risk detected'}`),
+        ...riskFlags.map((s: { session_date: string; ai_risk_note: string | null; tenants?: { full_name?: string } }) => `  ⚠ ${!tenant && s.tenants?.full_name ? `${s.tenants.full_name} — ` : ''}${s.session_date}: ${s.ai_risk_note ?? 'Risk detected'}`),
         '',
         '─────────────────────────────────────────',
         `BLOCKCHAIN STAMP: SHA-256 Audit Trail Active`,
@@ -131,6 +135,8 @@ export default function PrintView({ tenants, activeTenant }: Props) {
     const totalDue  = charges.reduce((s: number, c: { amount_due: number }) => s + c.amount_due, 0);
     const totalPaid = charges.reduce((s: number, c: { amount_paid: number }) => s + c.amount_paid, 0);
     const outstanding = totalDue - totalPaid;
+    // When the report spans every tenant, each row must name its tenant.
+    const allTenants = !meta.tenant;
 
     const printWin = window.open('', '_blank');
     if (!printWin) return;
@@ -198,10 +204,11 @@ export default function PrintView({ tenants, activeTenant }: Props) {
 ${sessions.length > 0 ? `
 <h2>Sessions (${sessions.length})</h2>
 <table>
-  <thead><tr><th>Date</th><th>Type</th><th>Worker</th><th>Notes</th><th>Flag</th></tr></thead>
+  <thead><tr>${allTenants ? '<th>Tenant</th>' : ''}<th>Date</th><th>Type</th><th>Worker</th><th>Notes</th><th>Flag</th></tr></thead>
   <tbody>
-    ${sessions.map((s: { session_date: string; session_type: string; users?: { full_name?: string }; notes?: string; ai_risk_flag: boolean; ai_risk_note?: string }) => `
+    ${sessions.map((s: { session_date: string; session_type: string; users?: { full_name?: string }; tenants?: { full_name?: string }; notes?: string; ai_risk_flag: boolean; ai_risk_note?: string }) => `
     <tr>
+      ${allTenants ? `<td>${s.tenants?.full_name ?? '—'}</td>` : ''}
       <td>${new Date(s.session_date).toLocaleDateString('en-GB')}</td>
       <td>${s.session_type.replace('_', ' ').toUpperCase()}</td>
       <td>${s.users?.full_name ?? '—'}</td>
@@ -214,10 +221,11 @@ ${sessions.length > 0 ? `
 ${charges.length > 0 ? `
 <h2>Service Charges (${charges.length})</h2>
 <table>
-  <thead><tr><th>Period</th><th>Due</th><th>Paid</th><th>Balance</th><th>Method</th><th>Status</th></tr></thead>
+  <thead><tr>${allTenants ? '<th>Tenant</th>' : ''}<th>Period</th><th>Due</th><th>Paid</th><th>Balance</th><th>Method</th><th>Status</th></tr></thead>
   <tbody>
-    ${charges.map((c: { period_start: string; period_end: string; amount_due: number; amount_paid: number; payment_method: string; is_paid: boolean }) => `
+    ${charges.map((c: { period_start: string; period_end: string; amount_due: number; amount_paid: number; payment_method: string; is_paid: boolean; tenants?: { full_name?: string } }) => `
     <tr>
+      ${allTenants ? `<td>${c.tenants?.full_name ?? '—'}</td>` : ''}
       <td>${new Date(c.period_start).toLocaleDateString('en-GB')} – ${new Date(c.period_end).toLocaleDateString('en-GB')}</td>
       <td>£${c.amount_due.toFixed(2)}</td>
       <td>£${c.amount_paid.toFixed(2)}</td>
@@ -228,7 +236,7 @@ ${charges.length > 0 ? `
   </tbody>
   <tfoot>
     <tr style="font-weight:700;background:#f8f9fa;">
-      <td>TOTAL</td><td>£${totalDue.toFixed(2)}</td><td>£${totalPaid.toFixed(2)}</td>
+      <td${allTenants ? ' colspan="2"' : ''}>TOTAL</td><td>£${totalDue.toFixed(2)}</td><td>£${totalPaid.toFixed(2)}</td>
       <td style="color:${outstanding > 0 ? '#dc2626' : '#065f46'}">£${outstanding.toFixed(2)}</td>
       <td colspan="2"></td>
     </tr>

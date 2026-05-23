@@ -17,6 +17,7 @@ interface Session {
   is_signed: boolean;
   created_at: string;
   users?: { full_name: string; role: string };
+  tenants?: { full_name: string; room_number: string };
 }
 
 interface Props {
@@ -221,8 +222,12 @@ export default function SessionsView({ activeTenant, currentUser, tenants }: Pro
                     {entryIcon(s.entry_method)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-navy">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-navy truncate">
+                        {s.tenants?.full_name ?? activeTenant?.full_name ?? 'Unknown tenant'}
+                      </span>
+                      <span className="text-xxs text-slate-400">·</span>
+                      <span className="text-xs font-medium text-slate-500">
                         {fmtDate(s.session_date)}
                       </span>
                       <span className="text-xxs bg-navy/10 text-navy px-1.5 py-0.5 rounded font-semibold">
@@ -235,6 +240,7 @@ export default function SessionsView({ activeTenant, currentUser, tenants }: Pro
                       )}
                     </div>
                     <p className="text-xxs text-slate-400 mt-0.5">
+                      {s.tenants?.room_number ? `${s.tenants.room_number} · ` : ''}
                       {s.users?.full_name ?? 'Unknown worker'} · {s.entry_method}
                     </p>
                   </div>

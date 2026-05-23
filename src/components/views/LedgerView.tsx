@@ -44,8 +44,9 @@ export default function LedgerView({ activeTenant, currentUser, tenants, onRefre
     const url = activeTenant
       ? `/api/charges?tenant_id=${activeTenant.id}`
       : '/api/charges';
-    const data = await fetch(url).then((r) => r.json()).catch(() => []);
-    setCharges(Array.isArray(data) ? data : []);
+    const json = await fetch(url).then((r) => r.json()).catch(() => null);
+    const list = Array.isArray(json) ? json : (json?.charges ?? json?.data ?? []);
+    setCharges(list as Charge[]);
     setLoading(false);
   }, [activeTenant]);
 

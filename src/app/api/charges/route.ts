@@ -14,7 +14,7 @@ export const GET = withApi({ permission: 'charge:read', rateLimit: 'api' }, asyn
   const svc = createServiceClient();
   let query = svc
     .from('service_charges')
-    .select('id, amount_due, amount_paid, tenant_id, is_paid, period_start, period_end')
+    .select('id, tenant_id, weekly_rate, payment_method, period_start, period_end, amount_due, amount_paid, is_paid, paid_at, notes, tenants!service_charges_tenant_id_fkey(full_name, room_number)')
     .order('period_start', { ascending: false })
     .limit(200);
 
