@@ -74,7 +74,7 @@ export function generateProof(payloadHash: string, tree: MerkleTree): MerkleProo
   const proof: string[] = [];
   for (let layer = 0; layer < tree.layers.length - 1; layer++) {
     const isRight  = index % 2 === 1;
-    const sibling  = isRight ? tree.layers[layer][index - 1] : tree.layers[layer][index + 1];
+    const sibling  = isRight ? tree.layers[layer][index - 1] : (tree.layers[layer][index + 1] ?? tree.layers[layer][index]);
     if (sibling) proof.push(sibling);
     index = Math.floor(index / 2);
   }

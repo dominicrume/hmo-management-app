@@ -16,7 +16,7 @@ test.describe('Multi-Page Print Assertion', () => {
       for (const sheet of Array.from(document.styleSheets)) {
         try {
           for (const rule of Array.from(sheet.cssRules)) {
-            if (rule.media && rule.media.mediaText === 'print') {
+            if ('media' in rule && (rule as any).media.mediaText === 'print') {
               found = true;
             }
           }

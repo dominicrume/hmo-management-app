@@ -91,7 +91,7 @@ export async function eraseTenantPII(
 
   const anonymisedFields = [
     'full_name', 'dob', 'nino', 'nationality', 'mobile', 'email',
-    'nok_name', 'nok_relation', 'nok_phone', 'nok_email',
+    'nok_name', 'nok_relation', 'nok_phone', 'nok_address',
     'doctor', 'probation_officer',
   ];
 
