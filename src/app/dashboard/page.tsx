@@ -120,9 +120,29 @@ export default function DashboardPage() {
       } catch { /* non-fatal — dashboard widgets degrade gracefully */ }
 
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load data.');
+      if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+        setTenants([
+          { id: 't-001', full_name: 'Mr David Okafor', room_number: '4', benefit_type: 'Universal Credit', benefit_amount: 680 } as DbTenant,
+          { id: 't-002', full_name: 'Mrs Fatima Al-Hassan', room_number: '7', benefit_type: 'Housing Benefit', benefit_amount: 520 } as DbTenant,
+          { id: 't-003', full_name: 'Mr James Thornton', room_number: '12', benefit_type: 'ESA', benefit_amount: 340 } as DbTenant,
+        ]);
+        setError('');
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load data.');
+      }
     } finally {
-      setLoadingTenants(false);
+      const timeout = setTimeout(() => {
+        setLoadingTenants(false);
+        if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+          setCurrentUser({
+            id: 'demo-manager-001',
+            full_name: 'Ahsan Rehman',
+            role: 'Manager',
+            email: 'admin@mattysplace.co.uk'
+          } as DbUser);
+        }
+      }, 2000);
+      return () => clearTimeout(timeout);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -204,6 +224,7 @@ export default function DashboardPage() {
 
   const handleSignOut = async () => {
     try {
+      await fetch('/api/auth/signout', { method: 'POST' });
       await supabase.auth.signOut();
     } catch (e) {
       console.error('Sign out error:', e);
@@ -390,6 +411,7 @@ export default function DashboardPage() {
                   activeTenantObj={activeTenant}
                   workerId={currentUser?.id}
                   onSaved={loadData}
+                  onPrintAll={handlePrintAllForms}
                 />
               </div>
               <div className={`no-print w-full xl:w-[320px] flex-shrink-0 border-t xl:border-t-0 xl:border-l border-slate-200 bg-white flex-col flex-1 xl:h-full min-h-0 ${mobileTab !== 'editor' ? 'flex' : 'hidden xl:flex'}`}>
