@@ -19,6 +19,9 @@ export function createClient() {
   const cookieStore = cookies();
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+      return createServerClient('https://mock.supabase.co', 'mock-key', { cookies: { getAll: () => [], setAll: () => {} } });
+    }
     throw new Error(
       '[SECURITY] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
       'Auth cannot function without these. Check your .env.local file.'
@@ -58,6 +61,9 @@ export function createClient() {
 
 export function createServiceClient() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+      return createSupabaseClient('https://mock.supabase.co', 'mock-key', { auth: { persistSession: false, autoRefreshToken: false } });
+    }
     throw new Error(
       '[SECURITY] Missing SUPABASE_SERVICE_ROLE_KEY. ' +
       'Service-role operations require this key. Check your .env.local file.'

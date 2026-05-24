@@ -16,6 +16,11 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
+    if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+      console.warn('Using local data fallback for Supabase client');
+      client = createBrowserClient('https://mock.supabase.co', 'mock-key');
+      return client;
+    }
     throw new Error(
       '[SECURITY] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
       'Check your environment configuration.'

@@ -44,6 +44,10 @@ function isRateLimited(key: string, max: number, windowMs: number): boolean {
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
+  if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
