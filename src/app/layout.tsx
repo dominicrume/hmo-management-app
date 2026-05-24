@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   },
 };
 
+import DemoSeeder from '@/components/DemoSeeder';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -30,7 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="bg-cream text-navy antialiased">{children}</body>
+      <body className="bg-cream text-navy antialiased">
+        <DemoSeeder />
+        {children}
+      </body>
     </html>
   );
 }
