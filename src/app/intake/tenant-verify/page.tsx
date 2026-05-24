@@ -21,6 +21,7 @@ export default function TenantVerifyPage() {
   const [saving,  setSaving]    = useState(false);
   const [error,   setError]     = useState('');
   const [confirmed, setConfirmed] = useState(false);
+  const [stampToBlockchain, setStampToBlockchain] = useState(true);
 
   // Load tenant record created in step 3
   useEffect(() => {
@@ -126,7 +127,8 @@ export default function TenantVerifyPage() {
           tenant_id: tenant.id,
           signature_data: sigData,
           document_hash: documentHash,
-          signed_at: signedAt
+          signed_at: signedAt,
+          stamp_to_blockchain: stampToBlockchain
         })
       });
 
@@ -232,7 +234,7 @@ export default function TenantVerifyPage() {
             />
             <span className="text-sm text-slate-700">
               I confirm that the details above are correct and accurate to the best of my knowledge.
-              I understand this record will be securely stored and blockchain-stamped.
+              I understand this record will be securely stored{stampToBlockchain ? ' and blockchain-stamped' : ''}.
             </span>
           </label>
 
@@ -274,14 +276,25 @@ export default function TenantVerifyPage() {
             </div>
           </section>
 
-          {/* Blockchain notice */}
-          <div className="bg-navy border border-navy-border rounded-2xl px-5 py-4 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          {/* Blockchain notice & Toggle */}
+          <div 
+            className={`border rounded-2xl px-5 py-4 flex items-center gap-3 cursor-pointer transition-colors
+                        ${stampToBlockchain ? 'bg-navy border-navy-border' : 'bg-slate-100 border-slate-300'}`}
+            onClick={() => setStampToBlockchain(!stampToBlockchain)}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                            ${stampToBlockchain ? 'border-emerald-400' : 'border-slate-400'}`}>
+              {stampToBlockchain && <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full" />}
+            </div>
             <div>
-              <p className="text-white text-xs font-bold">Signature will be blockchain-stamped</p>
-              <p className="text-slate-400 text-xxs mt-0.5 font-mono">
-                SHA-256(tenant · signature · timestamp) → audit_logs
+              <p className={`text-xs font-bold ${stampToBlockchain ? 'text-white' : 'text-slate-700'}`}>
+                {stampToBlockchain ? 'Stamp to Blockchain (Permanent Audit)' : 'Save to Database Only (Fastest)'}
               </p>
+              {stampToBlockchain && (
+                <p className="text-slate-400 text-xxs mt-0.5 font-mono">
+                  SHA-256(tenant · signature · timestamp) → audit_logs
+                </p>
+              )}
             </div>
           </div>
 

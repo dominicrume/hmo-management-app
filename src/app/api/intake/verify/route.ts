@@ -7,54 +7,60 @@ export async function POST(req: NextRequest) {
     const svc = createServiceClient();
 
     // Verify auth
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA !== 'true') {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    }
 
     const payload = await req.json();
-    const { tenant_id, signature_data, document_hash, signed_at } = payload;
+    const { tenant_id, signature_data, document_hash, signed_at, stamp_to_blockchain = true } = payload;
 
     if (!tenant_id || !signature_data || !document_hash || !signed_at) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Save verification record
-    const { error: verifyErr } = await svc.from('tenant_verifications').insert({
-      tenant_id,
-      verified_by_tenant: true,
-      verification_type: 'digital_signature',
-      signature_data,
-      signed_at,
-    });
+    if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA !== 'true') {
+      const { error: verifyErr } = await svc.from('tenant_verifications').insert({
+        tenant_id,
+        verified_by_tenant: true,
+        verification_type: 'digital_signature',
+        signature_data,
+        signed_at,
+      });
 
-    if (verifyErr) {
-      console.error('[intake/verify] Verify insert error:', verifyErr);
-      return NextResponse.json({ error: verifyErr.message }, { status: 500 });
-    }
+      if (verifyErr) {
+        console.error('[intake/verify] Verify insert error:', verifyErr);
+        return NextResponse.json({ error: verifyErr.message }, { status: 500 });
+      }
 
-    // Update tenant confidentiality_signed
-    const { error: updateErr } = await svc
-      .from('tenants')
-      .update({ confidentiality_signed: true, confidentiality_signed_at: signed_at })
-      .eq('id', tenant_id);
+      // Update tenant confidentiality_signed
+      const { error: updateErr } = await svc
+        .from('tenants')
+        .update({ confidentiality_signed: true, confidentiality_signed_at: signed_at })
+        .eq('id', tenant_id);
 
-    if (updateErr) {
-      console.error('[intake/verify] Tenant update error:', updateErr);
-      return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      if (updateErr) {
+        console.error('[intake/verify] Tenant update error:', updateErr);
+        return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      }
     }
     // Stamp on-chain
-    try {
-      const { stampRecordOnChain } = await import('@/lib/blockchain/stamp');
-      const result = await stampRecordOnChain(document_hash, `tenant:${tenant_id}`);
-      if (result.success && result.transactionHash) {
-        await svc.from('blockchain_stamps').insert({
-          payload_hash: document_hash,
-          tx_hash: result.transactionHash,
-          metadata: `verify:${tenant_id}`,
-          stamp_type: 'individual',
-        });
+    if (stamp_to_blockchain) {
+      try {
+        const { stampRecordOnChain } = await import('@/lib/blockchain/stamp');
+        const result = await stampRecordOnChain(document_hash, `tenant:${tenant_id}`);
+        if (result.success && result.transactionHash && process.env.NEXT_PUBLIC_USE_LOCAL_DATA !== 'true') {
+          await svc.from('blockchain_stamps').insert({
+            payload_hash: document_hash,
+            tx_hash: result.transactionHash,
+            metadata: `verify:${tenant_id}`,
+            stamp_type: 'individual',
+          });
+        }
+      } catch (chainErr) {
+        console.warn('[intake/verify] Blockchain stamp failed or skipped:', chainErr);
       }
-    } catch (chainErr) {
-      console.warn('[intake/verify] Blockchain stamp skipped (non-fatal):', chainErr);
     }
 
     return NextResponse.json({ ok: true });
