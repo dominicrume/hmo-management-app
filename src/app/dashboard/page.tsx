@@ -20,6 +20,7 @@ import LedgerView       from '@/components/views/LedgerView';
 import RiskView         from '@/components/views/RiskView';
 import AuditView        from '@/components/views/AuditView';
 import PrintView        from '@/components/views/PrintView';
+import ForbiddenView    from '@/components/views/ForbiddenView';
 
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import type { DbTenant, DbUser } from '@/types/database';
@@ -297,6 +298,7 @@ export default function DashboardPage() {
           </Suspense>
         );
       case 'ledger':
+        if (currentUser?.role !== 'Manager') return <ForbiddenView />;
         return (
           <Suspense fallback={<ViewFallback />}>
             <LedgerView
@@ -314,6 +316,7 @@ export default function DashboardPage() {
           </Suspense>
         );
       case 'audit':
+        if (currentUser?.role !== 'Manager') return <ForbiddenView />;
         return (
           <Suspense fallback={<ViewFallback />}>
             <AuditView activeTenant={activeTenant} />

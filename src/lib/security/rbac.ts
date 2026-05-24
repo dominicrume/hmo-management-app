@@ -39,7 +39,7 @@ const PERMISSION_MAP: Record<Permission, UserRole[]> = {
   'tenant:delete':      ['Manager'],
   'session:read':       ['Manager', 'SupportWorker'],
   'session:create':     ['Manager', 'SupportWorker'],
-  'charge:read':        ['Manager', 'SupportWorker'],
+  'charge:read':        ['Manager'],
   'charge:create':      ['Manager'],
   'charge:update':      ['Manager'],
   'audit:read':         ['Manager'],
