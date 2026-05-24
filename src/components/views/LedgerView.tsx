@@ -186,7 +186,12 @@ export default function LedgerView({ activeTenant, currentUser, tenants, onRefre
                     <p className="font-bold text-navy truncate max-w-[140px]">
                       {c.tenants?.full_name ?? '—'}
                     </p>
-                    <p className="text-xxs text-slate-400">{c.tenants?.room_number ?? ''}</p>
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      <p className="text-xxs text-slate-500">Room {c.tenants?.room_number ?? ''}</p>
+                      <p className="text-[10px] font-mono text-amber font-bold bg-amber/10 px-1.5 py-0.5 rounded w-max" title="Use this code as the bank transfer reference">
+                        Ref: TEN-{c.tenant_id.substring(0,8).toUpperCase()}
+                      </p>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
                     <p>{fmtDate(c.period_start)}</p>
