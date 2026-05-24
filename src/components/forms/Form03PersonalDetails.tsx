@@ -13,7 +13,7 @@ import { COUNTRIES } from '@/lib/countries';
 
 const NINO_RE  = /^[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^\+[1-9]\d{6,14}$/; // E.164 format from PhoneInput
+const PHONE_RE = /^\+?[0-9\s\-\(\)]{7,20}$/; // Relaxed to allow all global formats
 
 function validate(d: Form03Data): Record<string, string> {
   const e: Record<string, string> = {};
@@ -21,11 +21,17 @@ function validate(d: Form03Data): Record<string, string> {
   if (!d.full_name.trim())             e.full_name    = 'Full name is required.';
   if (d.full_name.length > 100)        e.full_name    = 'Maximum 100 characters.';
   if (!d.dob)                          e.dob          = 'Date of birth is required.';
-  if (!NINO_RE.test(d.nino))          e.nino         = 'Format: AB 12 34 56 C';
+  
+  // Allow N/A or standard NINO format
+  const ninoClean = d.nino.trim().toUpperCase();
+  if (ninoClean !== 'N/A' && ninoClean !== 'PENDING' && !NINO_RE.test(ninoClean)) {
+    e.nino = 'Format: AB 12 34 56 C (or N/A)';
+  }
+
   if (!d.nationality.trim())           e.nationality  = 'Nationality is required.';
   if (!d.address.trim())               e.address      = 'Address is required.';
   if (!d.room_number.trim())           e.room_number  = 'Room number is required.';
-  if (!d.mobile || !PHONE_RE.test(d.mobile.replace(/\s/g, ''))) e.mobile = 'Enter a valid international mobile number.';
+  if (!d.mobile || !PHONE_RE.test(d.mobile)) e.mobile = 'Enter a valid international mobile number.';
   if (d.email && !EMAIL_RE.test(d.email)) e.email     = 'Enter a valid email address.';
   if (!d.benefit_type)                 e.benefit_type = 'Benefit type is required.';
   if (!d.benefit_freq)                 e.benefit_freq = 'Frequency is required.';
@@ -33,7 +39,7 @@ function validate(d: Form03Data): Record<string, string> {
                                        e.benefit_amount = 'Enter a valid amount.';
   if (!d.nok_name.trim())              e.nok_name     = 'Next of kin name is required.';
   if (!d.nok_relation.trim())          e.nok_relation = 'Relationship is required.';
-  if (!d.nok_phone || !PHONE_RE.test(d.nok_phone.replace(/\s/g, ''))) e.nok_phone = 'Enter a valid international phone number.';
+  if (!d.nok_phone || !PHONE_RE.test(d.nok_phone)) e.nok_phone = 'Enter a valid international phone number.';
   if (!d.moved_in)                     e.moved_in     = 'Move-in date is required.';
   return e;
 }
