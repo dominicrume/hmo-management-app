@@ -1,6 +1,6 @@
 {
   "name": "mattys-place",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS=--dns-result-order=ipv4first next dev",

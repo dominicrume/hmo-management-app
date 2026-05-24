@@ -3,7 +3,7 @@
 > Enterprise-grade tenancy management platform for **Ash Shahada Housing Association Ltd**, Birmingham UK.
 > Built for General Matlub · Reliance Housing · Matty's Place.
 
-[![Version](https://img.shields.io/badge/version-0.5.0-amber)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-amber)](./CHANGELOG.md)
 [![Live](https://img.shields.io/badge/live-hmo--management--app.vercel.app-green)](https://hmo-management-app.vercel.app)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](https://www.typescriptlang.org/)
 [![Database](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com)
@@ -143,7 +143,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 See [CHANGELOG.md](./CHANGELOG.md) for full release history.
 
-Current version: **v0.5.0**
+Current version: **v1.0.0**
 
 ---
 
