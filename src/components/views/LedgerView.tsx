@@ -101,14 +101,16 @@ export default function LedgerView({ activeTenant, currentUser, tenants, onRefre
             <span className="text-red-500 font-bold">{fmt(totalOwed)} outstanding</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 bg-amber text-navy font-bold text-xs px-4 py-2.5 rounded-lg hover:bg-amber-light transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          New Charge
-        </button>
+        {currentUser?.role === 'Manager' && (
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 bg-amber text-navy font-bold text-xs px-4 py-2.5 rounded-lg hover:bg-amber-light transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New Charge
+          </button>
+        )}
       </div>
 
       {/* New charge form */}

@@ -89,6 +89,12 @@ export default function DashboardPage() {
       }
 
       const { user: dbUser } = await meRes.json();
+      
+      if (dbUser.role === 'Tenant') {
+        router.replace('/tenant/dashboard');
+        return;
+      }
+
       setCurrentUser(dbUser as DbUser);
 
       // 3. Load tenants via server API (applies correct role-based scoping server-side)

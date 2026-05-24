@@ -6,15 +6,24 @@ import { validate, firstError }                 from '@/lib/api/validate';
 import type { AuthContext }                     from '@/lib/security/rbac';
 
 // GET /api/charges?tenant_id=&unpaid=true
-export const GET = withApi({ permission: 'charge:read', rateLimit: 'api' }, async (req: NextRequest) => {
+export const GET = withApi({ permission: 'charge:read', rateLimit: 'api' }, async (req: NextRequest, ctx: AuthContext) => {
   const { searchParams } = new URL(req.url);
-  const tenantId = searchParams.get('tenant_id');
+  let tenantId = searchParams.get('tenant_id');
   const unpaidOnly = searchParams.get('unpaid') === 'true';
 
   const svc = createServiceClient();
+
+  if (ctx.dbUser.role === 'Tenant') {
+    const { data: tenantRecord } = await svc.from('tenants').select('id').eq('auth_id', ctx.dbUser.auth_id).single();
+    if (!tenantRecord) {
+      return apiOk({ charges: [], data: [] });
+    }
+    tenantId = tenantRecord.id; // Force their own ID
+  }
+
   let query = svc
     .from('service_charges')
-    .select('id, amount_due, amount_paid, tenant_id, is_paid, period_start, period_end')
+    .select('id, amount_due, amount_paid, tenant_id, is_paid, period_start, period_end, payment_method, notes')
     .order('period_start', { ascending: false })
     .limit(200);
 

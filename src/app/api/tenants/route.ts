@@ -62,6 +62,13 @@ export async function GET() {
         .order('full_name');
       if (error) throw new Error(error.message);
       tenants = data;
+    } else if (dbUser.role === 'Tenant') {
+      const { data, error } = await svc
+        .from('tenants')
+        .select('*')
+        .eq('auth_id', user.id);
+      if (error) throw new Error(error.message);
+      tenants = data;
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
