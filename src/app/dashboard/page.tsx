@@ -59,8 +59,10 @@ export default function DashboardPage() {
 
   // ── Load current user + tenants via server APIs (bypasses RLS correctly) ──
 
-  const loadData = useCallback(async () => {
-    setLoadingTenants(true);
+  const loadData = useCallback(async (opts?: { background?: boolean }) => {
+    // Background refreshes (realtime, post-save) must NOT blank the list with a
+    // spinner — only the initial load shows the loading state.
+    if (!opts?.background) setLoadingTenants(true);
     setError('');
 
     try {
@@ -138,18 +140,17 @@ export default function DashboardPage() {
         setError(e instanceof Error ? e.message : 'Failed to load data.');
       }
     } finally {
-      const timeout = setTimeout(() => {
-        setLoadingTenants(false);
-        if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
-          setCurrentUser({
-            id: 'demo-manager-001',
-            full_name: 'Ahsan Rehman',
-            role: 'Manager',
-            email: 'admin@mattysplace.co.uk'
-          } as DbUser);
-        }
-      }, 2000);
-      return () => clearTimeout(timeout);
+      // Restore the list immediately — the old 2s setTimeout made the tenant
+      // list vanish on every refresh while the count had already updated.
+      setLoadingTenants(false);
+      if (process.env.NEXT_PUBLIC_USE_LOCAL_DATA === 'true') {
+        setCurrentUser((prev) => prev ?? ({
+          id: 'demo-manager-001',
+          full_name: 'Ahsan Rehman',
+          role: 'Manager',
+          email: 'admin@mattysplace.co.uk'
+        } as DbUser));
+      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -178,7 +179,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const channel = supabase
       .channel('tenants-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tenants' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tenants' }, () => loadData({ background: true }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, loadData]);
@@ -419,7 +420,7 @@ export default function DashboardPage() {
                   activeTenant={activeTenant?.full_name ?? 'No tenant selected'}
                   activeTenantObj={activeTenant}
                   workerId={currentUser?.id}
-                  onSaved={loadData}
+                  onSaved={() => loadData({ background: true })}
                   onPrintAll={handlePrintAllForms}
                 />
               </div>
@@ -660,7 +661,7 @@ export default function DashboardPage() {
                   >
                     Setup Account
                   </button>
-                  <button type="button" onClick={loadData} className="text-xxs font-bold text-red-600 underline">
+                  <button type="button" onClick={() => loadData()} className="text-xxs font-bold text-red-600 underline">
                     Retry
                   </button>
                   <button type="button" onClick={handleSignOut} className="text-xxs font-bold text-red-600 underline">
