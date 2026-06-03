@@ -147,6 +147,41 @@ const FORM_TITLES: Record<FormId, string> = {
   induction:  'Admission Checklist — Form 1',
 };
 
+// Read-only tenant identity shown on every form so the core record (name, DOB,
+// NINO, room, address) carries across without being re-typed on each form.
+function fmtDob(dob?: string | null): string {
+  if (!dob) return '—';
+  const d = new Date(dob);
+  return isNaN(d.getTime())
+    ? dob
+    : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function TenantRecordStrip({ tenant }: { tenant: DbTenant }) {
+  const fields: { label: string; value: string; mono?: boolean; wide?: boolean }[] = [
+    { label: 'Full Name', value: tenant.full_name || '—' },
+    { label: 'Date of Birth', value: fmtDob(tenant.dob) },
+    { label: 'NINO', value: tenant.nino || '—', mono: true },
+    { label: 'Room', value: tenant.room_number || '—' },
+    { label: 'Address', value: tenant.address || '—', wide: true },
+  ];
+  return (
+    <div className="mb-6 rounded-lg border border-navy/10 bg-navy/[0.03] px-4 py-3">
+      <p className="text-xxs font-black text-slate-400 uppercase tracking-widest mb-2">
+        Tenant Record · auto-filled from file
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2">
+        {fields.map((f) => (
+          <div key={f.label} className={f.wide ? 'col-span-2 sm:col-span-4' : ''}>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{f.label}</p>
+            <p className={`text-xs text-navy font-semibold truncate ${f.mono ? 'font-mono' : ''}`}>{f.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -378,6 +413,7 @@ export default function FormWorkspace({
             tenantName={t.full_name}
             dob={t.dob}
             nino={t.nino}
+            initialData={{ room_number: t.room_number }}
             onSubmit={onSubmit}
             onSaveDraft={onDraft}
           />
@@ -526,6 +562,9 @@ export default function FormWorkspace({
             )}
           </div>
         )}
+
+        {/* ── Tenant Record strip — carries core identity to every form ── */}
+        {t && <TenantRecordStrip tenant={t} />}
 
         {/* ── Form body — real Form01-Form08 components ── */}
         {renderFormBody()}
